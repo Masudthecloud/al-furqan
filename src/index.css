@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Force light mode regardless of system */
+html {
+  background-color: white !important;
+  color-scheme: only light;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  color: #1f2937; /* Tailwind gray-800 */
+}
+
+/* Arabic script styling */
+.font-arabic {
+  font-family: 'Scheherazade New', serif;
+  font-size: 1.5rem;
+  line-height: 2.4rem;
+  direction: rtl;
+  text-align: right;
+}
