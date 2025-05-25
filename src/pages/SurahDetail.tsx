@@ -177,25 +177,25 @@ const SurahDetail = () => {
       </div>
 
       <div className="flex items-center gap-2 mb-4 text-sm">
-        <label>
+        <label className="text-gray-800 dark:text-gray-100">
           Start Ayah:
           <input
             type="number"
             value={startAyah}
             onChange={(e) => setStartAyah(Number(e.target.value))}
-            className="ml-1 border rounded w-16 px-1 py-0.5"
+            className="ml-1 border rounded w-16 px-1 py-0.5 bg-white text-black dark:bg-gray-800 dark:text-white"
           />
         </label>
-        <label>
+        <label className="text-gray-800 dark:text-gray-100">
           End Ayah:
           <input
             type="number"
             value={endAyah ?? ""}
             onChange={(e) => setEndAyah(Number(e.target.value))}
-            className="ml-1 border rounded w-16 px-1 py-0.5"
+            className="ml-1 border rounded w-16 px-1 py-0.5 bg-white text-black dark:bg-gray-800 dark:text-white"
           />
         </label>
-        <label className="flex items-center gap-1">
+        <label className="flex items-center gap-1 text-gray-800 dark:text-gray-100">
           <input
             type="checkbox"
             checked={repeatEach}
@@ -208,16 +208,20 @@ const SurahDetail = () => {
       {surah.ayahs.map((ayah, index) => (
         <div
           key={ayah.number}
-          className={`mb-4 p-4 rounded shadow ${
-            index === playingIndex
-              ? "bg-yellow-100"
-              : "bg-white dark:bg-gray-900"
-          } border border-gray-200 dark:border-gray-800`}
+          className={`mb-4 p-4 rounded shadow
+            ${index === playingIndex
+              ? "bg-yellow-100 dark:bg-blue-900"
+              : "bg-white dark:bg-gray-900"}
+            border border-gray-200 dark:border-gray-800`}
         >
           <p className="font-arabic text-right text-green-700 text-xl mb-2">{ayah.text}</p>
 
           {showTranslation && (
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
+            <p className={`text-sm mb-1 font-medium
+              ${index === playingIndex
+                ? "text-gray-800 dark:text-blue-100"
+                : "text-gray-600 dark:text-gray-300"}
+            `}>
               <strong>Ayah {ayah.number}:</strong> {ayah.englishText || ""}
             </p>
           )}
