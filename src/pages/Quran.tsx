@@ -28,7 +28,8 @@ export default function Quran() {
   useEffect(() => {
     const term = search.toLowerCase();
 
-    let sorted = [...surahs];
+    const sorted = [...surahs];
+
     if (sort === "alpha") {
       sorted.sort((a, b) => a.englishName.localeCompare(b.englishName));
     } else if (sort === "reveal") {

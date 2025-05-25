@@ -2,11 +2,18 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { fetchSurahByIdWithTranslation, fetchSurahAudio } from "../services/quranService";
 
+type FetchedAyah = {
+  number: number;           // global ayah ID
+  numberInSurah: number;
+  text: string;
+};
+
 interface Ayah {
   number: number;
   arabicText: string;
   translationText?: string;
   audio?: string;
+  ayahId?: number;
 }
 
 interface SurahData {
@@ -15,6 +22,14 @@ interface SurahData {
   englishNameTranslation: string;
   numberOfAyahs: number;
   ayahs: Ayah[];
+}
+
+interface Bookmark {
+  surahName: string;
+  surahId: number;
+  ayahNumber: number;
+  arabicText: string;
+  translationText?: string;
 }
 
 const RECITERS = [
@@ -40,7 +55,18 @@ export default function SurahDetail() {
   const [translation, setTranslation] = useState(localStorage.getItem("translation") || "en.sahih");
   const [reciter, setReciter] = useState(localStorage.getItem("reciter") || "ar.alafasy");
   const [showTranslation, setShowTranslation] = useState(true);
+  const [openTafsirs, setOpenTafsirs] = useState<{ [key: number]: string | null }>({});
   const audioQueue = useRef<HTMLAudioElement[]>([]);
+
+  const fetchTafsir = async (ayahId: number): Promise<string> => {
+    try {
+      const res = await fetch(`https://api.quran.com/v4/tafsirs/169/ayah/${ayahId}`);
+      const data = await res.json();
+      return data?.data?.text || "Tafsir not found.";
+    } catch {
+      return "Failed to load tafsir.";
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -51,11 +77,12 @@ export default function SurahDetail() {
       fetchSurahAudio(id, reciter),
     ])
       .then(([translatedData, audioData]) => {
-        const merged = translatedData.ayahs.map((tAyah, index) => ({
-          number: tAyah.number,
+        const merged = translatedData.ayahs.map((tAyah: FetchedAyah, index: number) => ({
+          number: tAyah.numberInSurah,
           translationText: tAyah.text,
           arabicText: audioData[index]?.text || "",
           audio: audioData[index]?.audio || "",
+          ayahId: audioData[index]?.number,
         }));
         setSurah({ ...translatedData, ayahs: merged });
       })
@@ -82,15 +109,17 @@ export default function SurahDetail() {
     if (!surah) return;
 
     const targetAyah = surah.ayahs.find((a) => a.number === number);
-    const saved = JSON.parse(localStorage.getItem("bookmarked_ayahs") || "[]");
+    const saved: Bookmark[] = JSON.parse(localStorage.getItem("bookmarked_ayahs") || "[]");
 
     const exists = saved.find(
-      (b: any) => b.ayahNumber === number && b.surahId === Number(id)
+      (b: Bookmark) => b.ayahNumber === number && b.surahId === Number(id)
     );
 
-    let updated;
+    let updated: Bookmark[];
     if (exists) {
-      updated = saved.filter((b: any) => !(b.ayahNumber === number && b.surahId === Number(id)));
+      updated = saved.filter(
+        (b: Bookmark) => !(b.ayahNumber === number && b.surahId === Number(id))
+      );
     } else {
       updated = [
         ...saved,
@@ -98,8 +127,8 @@ export default function SurahDetail() {
           surahName: surah.englishName,
           surahId: Number(id),
           ayahNumber: number,
-          arabicText: targetAyah?.arabicText,
-          translationText: targetAyah?.translationText,
+          arabicText: targetAyah?.arabicText || "",
+          translationText: targetAyah?.translationText || "",
         },
       ];
     }
@@ -118,7 +147,7 @@ export default function SurahDetail() {
   if (loading) return <p>Loading Surah...</p>;
   if (error || !surah) return <p className="text-red-600">{error}</p>;
 
-  const bookmarks = JSON.parse(localStorage.getItem("bookmarked_ayahs") || "[]");
+  const bookmarks: Bookmark[] = JSON.parse(localStorage.getItem("bookmarked_ayahs") || "[]");
 
   return (
     <div>
@@ -170,7 +199,7 @@ export default function SurahDetail() {
       <ul className="space-y-6">
         {surah.ayahs.map((ayah) => {
           const isBookmarked = bookmarks.some(
-            (b: any) => b.ayahNumber === ayah.number && b.surahId === Number(id)
+            (b) => b.ayahNumber === ayah.number && b.surahId === Number(id)
           );
 
           return (
@@ -180,7 +209,9 @@ export default function SurahDetail() {
                 isBookmarked ? "border-yellow-400" : ""
               }`}
             >
-              <p className="font-arabic text-green-800 dark:text-green-200 mb-2 text-xl">{ayah.arabicText}</p>
+              <p className="font-arabic text-green-800 dark:text-green-200 mb-2 text-xl">
+                {ayah.arabicText}
+              </p>
 
               {showTranslation && (
                 <p className="text-sm text-gray-700 dark:text-gray-300">
@@ -194,13 +225,37 @@ export default function SurahDetail() {
                 </audio>
               )}
 
-              <button
-                onClick={() => toggleBookmark(ayah.number)}
-                className="absolute top-2 right-2 text-yellow-500 text-lg"
-                title="Bookmark"
-              >
-                {isBookmarked ? "★" : "☆"}
-              </button>
+              <div className="flex justify-between items-center mt-2">
+                <button
+                  onClick={() => toggleBookmark(ayah.number)}
+                  className="text-yellow-500 text-lg"
+                  title="Bookmark"
+                >
+                  {isBookmarked ? "★" : "☆"}
+                </button>
+
+                {ayah.ayahId && (
+                  <button
+                    className="text-sm text-blue-500 underline"
+                    onClick={async () => {
+                      if (openTafsirs[ayah.number]) {
+                        setOpenTafsirs({ ...openTafsirs, [ayah.number]: null });
+                      } else {
+                        const tafsir = await fetchTafsir(ayah.ayahId!);
+                        setOpenTafsirs({ ...openTafsirs, [ayah.number]: tafsir });
+                      }
+                    }}
+                  >
+                    {openTafsirs[ayah.number] ? "Hide Tafsir" : "Show Tafsir (Ibn Kathir)"}
+                  </button>
+                )}
+              </div>
+
+              {openTafsirs[ayah.number] && (
+                <div className="mt-2 text-sm text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 p-3 rounded">
+                  {openTafsirs[ayah.number]}
+                </div>
+              )}
             </li>
           );
         })}
