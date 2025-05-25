@@ -1,8 +1,16 @@
 module.exports = {
-  darkMode: 'class', // 👈 add this
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        golden: {
+          light: '#fdf6e3',
+          base: '#d4af37',
+          dark: '#a67c00',
+        },
+      },
+    },
   },
   plugins: [],
 }

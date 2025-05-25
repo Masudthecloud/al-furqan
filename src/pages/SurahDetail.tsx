@@ -1,265 +1,251 @@
-import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { fetchSurahByIdWithTranslation, fetchSurahAudio } from "../services/quranService";
-
-type FetchedAyah = {
-  number: number;           // global ayah ID
-  numberInSurah: number;
-  text: string;
-};
+import { useEffect, useState, useRef } from "react";
+import {
+  fetchSurahByIdWithTranslation,
+  fetchSurahAudio,
+} from "../services/quranService";
+import { FaRegStar, FaStar } from "react-icons/fa";
 
 interface Ayah {
   number: number;
-  arabicText: string;
-  translationText?: string;
+  text: string; // Arabic
+  englishText?: string;
   audio?: string;
   ayahId?: number;
 }
 
-interface SurahData {
+interface Surah {
   name: string;
   englishName: string;
   englishNameTranslation: string;
-  numberOfAyahs: number;
+  number: number;
   ayahs: Ayah[];
 }
 
-interface Bookmark {
-  surahName: string;
-  surahId: number;
-  ayahNumber: number;
-  arabicText: string;
-  translationText?: string;
-}
-
-const RECITERS = [
-  { label: "Mishary Alafasy", code: "ar.alafasy" },
-  { label: "Abdul Basit", code: "ar.abdulbasitmurattal" },
-  { label: "Al-Minshawi", code: "ar.minshawi" },
-  { label: "Saud Al-Shuraim", code: "ar.saoodshuraym" },
-];
-
-const TRANSLATIONS = [
-  { label: "Sahih International", code: "en.sahih" },
-  { label: "Pickthall", code: "en.pickthall" },
-  { label: "Yusuf Ali", code: "en.yusufali" },
-  { label: "Bengali", code: "bn.bengali" },
-  { label: "Urdu", code: "ur.jalandhry" },
-];
-
-export default function SurahDetail() {
+const SurahDetail = () => {
   const { id } = useParams();
-  const [surah, setSurah] = useState<SurahData | null>(null);
+  const [surah, setSurah] = useState<Surah | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [translation, setTranslation] = useState(localStorage.getItem("translation") || "en.sahih");
-  const [reciter, setReciter] = useState(localStorage.getItem("reciter") || "ar.alafasy");
+  const [translation, setTranslation] = useState("en.sahih");
+  const [reciter, setReciter] = useState("ar.alafasy");
   const [showTranslation, setShowTranslation] = useState(true);
-  const [openTafsirs, setOpenTafsirs] = useState<{ [key: number]: string | null }>({});
-  const audioQueue = useRef<HTMLAudioElement[]>([]);
+  const [bookmarks, setBookmarks] = useState<number[]>([]);
+  const [startAyah, setStartAyah] = useState(1);
+  const [endAyah, setEndAyah] = useState<number | null>(null);
+  const [repeatEach, setRepeatEach] = useState(false);
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const audioRefs = useRef<(HTMLAudioElement | null)[]>([]);
 
-  const fetchTafsir = async (ayahId: number): Promise<string> => {
-    try {
-      const res = await fetch(`https://api.quran.com/v4/tafsirs/169/ayah/${ayahId}`);
-      const data = await res.json();
-      return data?.data?.text || "Tafsir not found.";
-    } catch {
-      return "Failed to load tafsir.";
-    }
-  };
+  useEffect(() => {
+    const saved = localStorage.getItem("bookmarks");
+    if (saved) setBookmarks(JSON.parse(saved));
+  }, []);
 
   useEffect(() => {
     if (!id) return;
-    setLoading(true);
 
-    Promise.all([
-      fetchSurahByIdWithTranslation(id, translation),
-      fetchSurahAudio(id, reciter),
-    ])
-      .then(([translatedData, audioData]) => {
-        const merged = translatedData.ayahs.map((tAyah: FetchedAyah, index: number) => ({
-          number: tAyah.numberInSurah,
-          translationText: tAyah.text,
-          arabicText: audioData[index]?.text || "",
-          audio: audioData[index]?.audio || "",
-          ayahId: audioData[index]?.number,
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [translated, arabic, audio] = await Promise.all([
+          fetchSurahByIdWithTranslation(id, translation),
+          fetchSurahByIdWithTranslation(id, "ar"),
+          fetchSurahAudio(id, reciter),
+        ]);
+
+        const mergedAyahs: Ayah[] = arabic.ayahs.map((ayah: Ayah, idx: number) => ({
+          number: ayah.number,
+          text: ayah.text,
+          englishText: translated.ayahs[idx]?.text,
+          audio: audio[idx]?.audio,
+          ayahId: translated.ayahs[idx]?.ayahId || arabic.ayahs[idx]?.ayahId,
         }));
-        setSurah({ ...translatedData, ayahs: merged });
-      })
-      .catch(() => setError("Failed to load Surah"))
-      .finally(() => setLoading(false));
+
+        setSurah({
+          name: arabic.name,
+          englishName: arabic.englishName,
+          englishNameTranslation: arabic.englishNameTranslation,
+          number: arabic.number,
+          ayahs: mergedAyahs,
+        });
+
+        setEndAyah(mergedAyahs.length);
+      } catch (err) {
+        console.error("Failed to load surah", err);
+        setSurah(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, [id, translation, reciter]);
 
-  const handlePlayAll = () => {
-    if (!surah) return;
-    audioQueue.current = surah.ayahs
-      .map((ayah) => new Audio(ayah.audio))
-      .filter((a) => a.src);
-    playSequential(0);
+  const toggleBookmark = (ayahNum: number) => {
+    const updated = bookmarks.includes(ayahNum)
+      ? bookmarks.filter((b) => b !== ayahNum)
+      : [...bookmarks, ayahNum];
+    setBookmarks(updated);
+    localStorage.setItem("bookmarks", JSON.stringify(updated));
   };
 
-  const playSequential = (index: number) => {
-    if (index >= audioQueue.current.length) return;
-    const audio = audioQueue.current[index];
-    audio.play();
-    audio.onended = () => playSequential(index + 1);
-  };
-
-  const toggleBookmark = (number: number) => {
+  const playAll = async () => {
     if (!surah) return;
+    const ayahsToPlay = surah.ayahs.slice(startAyah - 1, endAyah ?? surah.ayahs.length);
 
-    const targetAyah = surah.ayahs.find((a) => a.number === number);
-    const saved: Bookmark[] = JSON.parse(localStorage.getItem("bookmarked_ayahs") || "[]");
+    for (let i = 0; i < ayahsToPlay.length; i++) {
+      const audio = audioRefs.current[startAyah - 1 + i];
+      if (!audio) continue;
 
-    const exists = saved.find(
-      (b: Bookmark) => b.ayahNumber === number && b.surahId === Number(id)
-    );
-
-    let updated: Bookmark[];
-    if (exists) {
-      updated = saved.filter(
-        (b: Bookmark) => !(b.ayahNumber === number && b.surahId === Number(id))
-      );
-    } else {
-      updated = [
-        ...saved,
-        {
-          surahName: surah.englishName,
-          surahId: Number(id),
-          ayahNumber: number,
-          arabicText: targetAyah?.arabicText || "",
-          translationText: targetAyah?.translationText || "",
-        },
-      ];
+      setPlayingIndex(startAyah - 1 + i);
+      await new Promise((resolve) => {
+        audio.currentTime = 0;
+        audio.play();
+        audio.onended = () => {
+          if (repeatEach) {
+            audio.play();
+          } else {
+            resolve(null);
+          }
+        };
+      });
     }
 
-    localStorage.setItem("bookmarked_ayahs", JSON.stringify(updated));
+    setPlayingIndex(null);
   };
 
-  useEffect(() => {
-    localStorage.setItem("reciter", reciter);
-  }, [reciter]);
-
-  useEffect(() => {
-    localStorage.setItem("translation", translation);
-  }, [translation]);
-
-  if (loading) return <p>Loading Surah...</p>;
-  if (error || !surah) return <p className="text-red-600">{error}</p>;
-
-  const bookmarks: Bookmark[] = JSON.parse(localStorage.getItem("bookmarked_ayahs") || "[]");
+  if (loading) return <p className="text-center mt-10">Loading Surah...</p>;
+  if (!surah) return <p className="text-center mt-10 text-red-600">Surah not found.</p>;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-green-800 dark:text-green-300 mb-2">
-        📖 {surah.englishName} ({surah.name})
+    <div className="p-4 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold text-green-600 mb-1">
+        📖 {surah.englishName}{" "}
+        <span className="text-sm text-green-300">({surah.name})</span>
       </h1>
-      <p className="text-gray-600 dark:text-gray-400 mb-4 italic">
+      <p className="italic text-sm text-gray-500 dark:text-gray-300 mb-4">
         {surah.englishNameTranslation}
       </p>
 
-      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <label className="flex gap-2 items-center text-sm">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <label className="flex items-center gap-1">
           <input
             type="checkbox"
             checked={showTranslation}
-            onChange={(e) => setShowTranslation(e.target.checked)}
+            onChange={() => setShowTranslation((prev) => !prev)}
           />
           Show Translation
         </label>
 
         <select
-          value={translation}
-          onChange={(e) => setTranslation(e.target.value)}
-          className="border p-2 rounded text-sm dark:bg-gray-800 dark:text-white"
+        value={translation}
+        onChange={(e) => setTranslation(e.target.value)}
+        className="bg-white text-black dark:bg-gray-800 dark:text-white border rounded px-2 py-1"
         >
-          {TRANSLATIONS.map((t) => (
-            <option key={t.code} value={t.code}>{t.label}</option>
-          ))}
+        <option value="en.sahih">English - Sahih International</option>
+        <option value="en.yusufali">English - Yusuf Ali</option>
+        <option value="bn.bengali">Bengali</option>
+        <option value="ur.jalandhry">Urdu</option>
+        <option value="id.indonesian">Indonesian</option>
+        <option value="tr.golpinarli">Turkish - Ali Riza Safa Golpinarli</option>
+        <option value="fr.hamidullah">French - Muhammad Hamidullah</option>
+        <option value="de.bubenheim">German - Bubenheim & Elyas</option>
+        <option value="es.cortes">Spanish - Julio Cortes</option>
+        <option value="ru.kuliev">Russian - Elmir Kuliev</option>
+        <option value="zh.jian">Chinese (Simplified)</option>
         </select>
+
 
         <select
           value={reciter}
           onChange={(e) => setReciter(e.target.value)}
-          className="border p-2 rounded text-sm dark:bg-gray-800 dark:text-white"
+          className="bg-white text-black dark:bg-gray-800 dark:text-white border rounded px-2 py-1"
         >
-          {RECITERS.map((r) => (
-            <option key={r.code} value={r.code}>{r.label}</option>
-          ))}
+          <option value="ar.alafasy">Mishary Alafasy</option>
+          <option value="ar.husary">Mahmoud Al-Hussary</option>
+          <option value="ar.abdulbasitmurattal">Abdul Basit</option>
+          <option value="ar.minshawi">Al-Minshawi</option>
+          <option value="ar.saoodshuraym">Saud Al-Shuraim</option>
         </select>
 
         <button
-          onClick={handlePlayAll}
-          className="bg-green-600 text-white px-4 py-2 rounded shadow"
+          onClick={playAll}
+          className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
         >
           ▶️ Play All
         </button>
       </div>
 
-      <ul className="space-y-6">
-        {surah.ayahs.map((ayah) => {
-          const isBookmarked = bookmarks.some(
-            (b) => b.ayahNumber === ayah.number && b.surahId === Number(id)
-          );
+      <div className="flex items-center gap-2 mb-4 text-sm">
+        <label>
+          Start Ayah:
+          <input
+            type="number"
+            value={startAyah}
+            onChange={(e) => setStartAyah(Number(e.target.value))}
+            className="ml-1 border rounded w-16 px-1 py-0.5"
+          />
+        </label>
+        <label>
+          End Ayah:
+          <input
+            type="number"
+            value={endAyah ?? ""}
+            onChange={(e) => setEndAyah(Number(e.target.value))}
+            className="ml-1 border rounded w-16 px-1 py-0.5"
+          />
+        </label>
+        <label className="flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={repeatEach}
+            onChange={() => setRepeatEach((prev) => !prev)}
+          />
+          Repeat each verse
+        </label>
+      </div>
 
-          return (
-            <li
-              key={ayah.number}
-              className={`p-4 rounded shadow-sm border relative bg-white dark:bg-gray-800 ${
-                isBookmarked ? "border-yellow-400" : ""
-              }`}
+      {surah.ayahs.map((ayah, index) => (
+        <div
+          key={ayah.number}
+          className={`mb-4 p-4 rounded shadow ${
+            index === playingIndex
+              ? "bg-yellow-100"
+              : "bg-white dark:bg-gray-900"
+          } border border-gray-200 dark:border-gray-800`}
+        >
+          <p className="font-arabic text-right text-green-700 text-xl mb-2">{ayah.text}</p>
+
+          {showTranslation && (
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
+              <strong>Ayah {ayah.number}:</strong> {ayah.englishText || ""}
+            </p>
+          )}
+
+          <audio
+            ref={(el) => {
+              audioRefs.current[index] = el;
+            }}
+            controls
+            className="w-full mb-2"
+          >
+            <source src={ayah.audio} type="audio/mp3" />
+            Your browser does not support the audio element.
+          </audio>
+
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => toggleBookmark(ayah.number)}
+              className="text-yellow-500 hover:text-yellow-400"
+              title="Bookmark"
             >
-              <p className="font-arabic text-green-800 dark:text-green-200 mb-2 text-xl">
-                {ayah.arabicText}
-              </p>
-
-              {showTranslation && (
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  Ayah {ayah.number}: {ayah.translationText}
-                </p>
-              )}
-
-              {ayah.audio && (
-                <audio controls className="mt-2 w-full">
-                  <source src={ayah.audio} type="audio/mp3" />
-                </audio>
-              )}
-
-              <div className="flex justify-between items-center mt-2">
-                <button
-                  onClick={() => toggleBookmark(ayah.number)}
-                  className="text-yellow-500 text-lg"
-                  title="Bookmark"
-                >
-                  {isBookmarked ? "★" : "☆"}
-                </button>
-
-                {ayah.ayahId && (
-                  <button
-                    className="text-sm text-blue-500 underline"
-                    onClick={async () => {
-                      if (openTafsirs[ayah.number]) {
-                        setOpenTafsirs({ ...openTafsirs, [ayah.number]: null });
-                      } else {
-                        const tafsir = await fetchTafsir(ayah.ayahId!);
-                        setOpenTafsirs({ ...openTafsirs, [ayah.number]: tafsir });
-                      }
-                    }}
-                  >
-                    {openTafsirs[ayah.number] ? "Hide Tafsir" : "Show Tafsir (Ibn Kathir)"}
-                  </button>
-                )}
-              </div>
-
-              {openTafsirs[ayah.number] && (
-                <div className="mt-2 text-sm text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 p-3 rounded">
-                  {openTafsirs[ayah.number]}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+              {bookmarks.includes(ayah.number) ? <FaStar /> : <FaRegStar />}
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
-}
+};
+
+export default SurahDetail;

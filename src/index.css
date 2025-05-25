@@ -22,3 +22,19 @@ body {
   direction: rtl;
   text-align: right;
 }
+
+/* Islamic pattern background for landing */
+.bg-islamic-pattern {
+  background-image: url("https://www.toptal.com/designers/subtlepatterns/patterns/islamic-pattern.png");
+  background-size: contain;
+  background-repeat: repeat;
+  background-position: center;
+}
+
+/* Golden Quran reading background */
+.bg-quran-paper {
+  background-image: url("https://i.imgur.com/tVrrtVK.png");
+  background-size: cover;
+  background-position: top left;
+  background-repeat: repeat;
+}
