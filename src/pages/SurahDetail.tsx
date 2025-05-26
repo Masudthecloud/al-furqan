@@ -1,6 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
-import { applyTajweedColors } from "../utils/tajweed";
 import {
   fetchSurahByIdWithTranslation,
   fetchSurahAudio,
@@ -39,6 +38,79 @@ interface SurahInfo {
   name: string;
   englishName: string;
 }
+
+// Official Dar Al-Maarifah Tajweed Color System
+const tajweedRules: Record<string, string> = {
+  // RED - Required Madd (6 counts)
+  "\u064e\u0627": "text-[#e60000]", // Fatha + Alif
+  "\u064f\u0648": "text-[#e60000]", // Damma + Waw
+  "\u0650\u064a": "text-[#e60000]", // Kasra + Ya
+  "\u064e\u0648\u0654": "text-[#e60000]", // Fatha with Waw Madd
+  "\u064f\u0648\u0654": "text-[#e60000]", // Damma with Waw Madd
+  "\u0650\u064a\u0654": "text-[#e60000]", // Kasra with Ya Madd
+
+  // GREEN - Ghunnah (Nasalization)
+  "\u0646\u0651": "text-[#009900]", // Noon with Shaddah
+  "\u0645\u0651": "text-[#009900]", // Meem with Shaddah
+  "\u0646\u0652": "text-[#009900]", // Noon Sakinah
+
+  // BLUE - Qalqalah (Echo)
+  "\u0642": "text-[#0000cc]",
+  "\u0637": "text-[#0000cc]",
+  "\u0628": "text-[#0000cc]",
+  "\u062c": "text-[#0000cc]",
+  "\u062f": "text-[#0000cc]",
+
+  // DARK BLUE - Ikhfa (Concealment)
+  "\u0646\u0652\u062a": "text-[#000066]", // Noon Sakinah + Ta
+  "\u0646\u0652\u062b": "text-[#000066]", // Noon Sakinah + Tha
+  "\u0646\u0652\u062c": "text-[#000066]", // Noon Sakinah + Jeem
+
+  // LIGHT BROWN - Idgham (Merging)
+  "\u0644\u0651": "text-[#996633]", // Lam with Shaddah
+  "\u0631\u0651": "text-[#996633]", // Ra with Shaddah
+
+  // PINK - Heavy Letters (Tafkheem)
+  "\u062e": "text-[#ff66b2]", // Kha
+  "\u0635": "text-[#ff66b2]", // Sad
+  "\u0636": "text-[#ff66b2]", // Dad
+  "\u063a": "text-[#ff66b2]", // Ghain
+  "\u0638": "text-[#ff66b2]", // Dha
+
+  // GRAY - Silent Letters
+  "\u0652": "text-[#666666]" // Sukoon
+};
+
+const applyTajweedColors = (text: string, showTajweed: boolean) => {
+  if (!showTajweed || !text) return text;
+
+  const elements = [];
+  let i = 0;
+  
+  while (i < text.length) {
+    let matched = false;
+    
+    for (const rule in tajweedRules) {
+      if (text.startsWith(rule, i)) {
+        elements.push(
+          <span key={i} className={tajweedRules[rule]}>
+            {text.substr(i, rule.length)}
+          </span>
+        );
+        i += rule.length;
+        matched = true;
+        break;
+      }
+    }
+    
+    if (!matched) {
+      elements.push(text[i]);
+      i++;
+    }
+  }
+  
+  return elements;
+};
 
 const SurahDetail = () => {
   const { id } = useParams();
@@ -517,31 +589,9 @@ const SurahDetail = () => {
                 </button>
               </div>
               
-              {/* <p className="font-arabic text-right text-2xl leading-loose mb-3 text-gray-800 dark:text-gray-200">
+              <p className="font-arabic text-right text-2xl leading-loose mb-3 text-gray-800 dark:text-gray-200">
                 {applyTajweedColors(showArabic, showTajweed)}
-              </p> */}
-
-              <p
-            className="font-arabic text-right text-2xl leading-loose mb-3 text-gray-800 dark:text-gray-200"
-            dir="rtl"
-            lang="ar"
-            style={{
-                unicodeBidi: "isolate",
-                letterSpacing: "normal",
-                wordSpacing: "normal",
-                textTransform: "none",
-                WebkitFontSmoothing: "antialiased",
-                textRendering: "optimizeLegibility",
-            }}
-            >
-            {applyTajweedColors(showArabic, showTajweed)}
-            </p>
-
-
-              {/* <p className="arabic-text">
-                {applyTajweedColors(showArabic, showTajweed)}
-             </p> */}
-
+              </p>
 
               {showTranslation && (
                 <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
