@@ -589,9 +589,31 @@ const SurahDetail = () => {
                 </button>
               </div>
               
-              <p className="font-arabic text-right text-2xl leading-loose mb-3 text-gray-800 dark:text-gray-200">
+              {/* <p className="font-arabic text-right text-2xl leading-loose mb-3 text-gray-800 dark:text-gray-200">
                 {applyTajweedColors(showArabic, showTajweed)}
-              </p>
+              </p> */}
+
+              <p
+            className="font-arabic text-right text-2xl leading-loose mb-3 text-gray-800 dark:text-gray-200"
+            dir="rtl"
+            lang="ar"
+            style={{
+                unicodeBidi: "isolate",
+                letterSpacing: "normal",
+                wordSpacing: "normal",
+                textTransform: "none",
+                WebkitFontSmoothing: "antialiased",
+                textRendering: "optimizeLegibility",
+            }}
+            >
+            {applyTajweedColors(showArabic, showTajweed)}
+            </p>
+
+
+              {/* <p className="arabic-text">
+                {applyTajweedColors(showArabic, showTajweed)}
+             </p> */}
+
 
               {showTranslation && (
                 <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">

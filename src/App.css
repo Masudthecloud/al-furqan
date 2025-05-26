@@ -40,3 +40,15 @@
 .read-the-docs {
   color: #888;
 }
+.arabic-text {
+  font-family: 'Amiri', serif;
+  direction: rtl;
+  unicode-bidi: isolate;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-transform: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  line-height: 2;
+  font-size: 1.5rem;
+}

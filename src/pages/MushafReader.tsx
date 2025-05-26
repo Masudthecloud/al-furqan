@@ -227,12 +227,25 @@ export default function MushafReader() {
       <div className={`space-y-6 text-right mb-8 ${fontSizes[fontSize - 1]}`}>
         {surah.ayahs.map((ayah) => (
           <div key={ayah.numberInSurah} className="relative">
-            <p className="font-arabic leading-loose text-green-900 dark:text-green-200">
+            <p
+              className="font-arabic text-right text-green-900 dark:text-green-200 leading-loose mb-2"
+              dir="rtl"
+              lang="ar"
+              style={{
+                unicodeBidi: "isolate",
+                letterSpacing: "normal",
+                wordSpacing: "normal",
+                textTransform: "none",
+                WebkitFontSmoothing: "antialiased",
+                textRendering: "optimizeLegibility",
+              }}
+            >
               {applyTajweedColors(ayah.text)}{" "}
               <span className="text-sm text-gray-400 inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100">
                 {ayah.numberInSurah}
               </span>
             </p>
+
           </div>
         ))}
       </div>
