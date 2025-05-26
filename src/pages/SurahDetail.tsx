@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
+import { applyTajweedColors } from "../utils/tajweed";
 import {
   fetchSurahByIdWithTranslation,
   fetchSurahAudio,
@@ -81,36 +82,22 @@ const tajweedRules: Record<string, string> = {
   "\u0652": "text-[#666666]" // Sukoon
 };
 
-const applyTajweedColors = (text: string, showTajweed: boolean) => {
-  if (!showTajweed || !text) return text;
+// Function to apply Tajweed color rules to Arabic text without breaking ligatures (mobile-safe)
+/* const applyTajweedColors = (text: string, showTajweed: boolean): React.ReactNode => {
+  if (!showTajweed || !text) return <>{text}</>;
 
-  const elements = [];
-  let i = 0;
-  
-  while (i < text.length) {
-    let matched = false;
-    
-    for (const rule in tajweedRules) {
-      if (text.startsWith(rule, i)) {
-        elements.push(
-          <span key={i} className={tajweedRules[rule]}>
-            {text.substr(i, rule.length)}
-          </span>
-        );
-        i += rule.length;
-        matched = true;
-        break;
-      }
-    }
-    
-    if (!matched) {
-      elements.push(text[i]);
-      i++;
-    }
+  const rules: [RegExp, string][] = Object.entries(tajweedRules).map(
+    ([pattern, className]) => [new RegExp(pattern, "g"), className]
+  );
+
+  let html = text;
+
+  for (const [regex, cls] of rules) {
+    html = html.replace(regex, (match) => `<span class="${cls}">${match}</span>`);
   }
-  
-  return elements;
-};
+
+  return <span dangerouslySetInnerHTML={{ __html: html }} />;
+}; */
 
 const SurahDetail = () => {
   const { id } = useParams();
