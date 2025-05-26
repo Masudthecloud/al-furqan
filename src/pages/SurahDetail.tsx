@@ -40,65 +40,6 @@ interface SurahInfo {
   englishName: string;
 }
 
-// Official Dar Al-Maarifah Tajweed Color System
-const tajweedRules: Record<string, string> = {
-  // RED - Required Madd (6 counts)
-  "\u064e\u0627": "text-[#e60000]", // Fatha + Alif
-  "\u064f\u0648": "text-[#e60000]", // Damma + Waw
-  "\u0650\u064a": "text-[#e60000]", // Kasra + Ya
-  "\u064e\u0648\u0654": "text-[#e60000]", // Fatha with Waw Madd
-  "\u064f\u0648\u0654": "text-[#e60000]", // Damma with Waw Madd
-  "\u0650\u064a\u0654": "text-[#e60000]", // Kasra with Ya Madd
-
-  // GREEN - Ghunnah (Nasalization)
-  "\u0646\u0651": "text-[#009900]", // Noon with Shaddah
-  "\u0645\u0651": "text-[#009900]", // Meem with Shaddah
-  "\u0646\u0652": "text-[#009900]", // Noon Sakinah
-
-  // BLUE - Qalqalah (Echo)
-  "\u0642": "text-[#0000cc]",
-  "\u0637": "text-[#0000cc]",
-  "\u0628": "text-[#0000cc]",
-  "\u062c": "text-[#0000cc]",
-  "\u062f": "text-[#0000cc]",
-
-  // DARK BLUE - Ikhfa (Concealment)
-  "\u0646\u0652\u062a": "text-[#000066]", // Noon Sakinah + Ta
-  "\u0646\u0652\u062b": "text-[#000066]", // Noon Sakinah + Tha
-  "\u0646\u0652\u062c": "text-[#000066]", // Noon Sakinah + Jeem
-
-  // LIGHT BROWN - Idgham (Merging)
-  "\u0644\u0651": "text-[#996633]", // Lam with Shaddah
-  "\u0631\u0651": "text-[#996633]", // Ra with Shaddah
-
-  // PINK - Heavy Letters (Tafkheem)
-  "\u062e": "text-[#ff66b2]", // Kha
-  "\u0635": "text-[#ff66b2]", // Sad
-  "\u0636": "text-[#ff66b2]", // Dad
-  "\u063a": "text-[#ff66b2]", // Ghain
-  "\u0638": "text-[#ff66b2]", // Dha
-
-  // GRAY - Silent Letters
-  "\u0652": "text-[#666666]" // Sukoon
-};
-
-// Function to apply Tajweed color rules to Arabic text without breaking ligatures (mobile-safe)
-/* const applyTajweedColors = (text: string, showTajweed: boolean): React.ReactNode => {
-  if (!showTajweed || !text) return <>{text}</>;
-
-  const rules: [RegExp, string][] = Object.entries(tajweedRules).map(
-    ([pattern, className]) => [new RegExp(pattern, "g"), className]
-  );
-
-  let html = text;
-
-  for (const [regex, cls] of rules) {
-    html = html.replace(regex, (match) => `<span class="${cls}">${match}</span>`);
-  }
-
-  return <span dangerouslySetInnerHTML={{ __html: html }} />;
-}; */
-
 const SurahDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
