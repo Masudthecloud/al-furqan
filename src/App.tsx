@@ -5,7 +5,6 @@ import Quran from "./pages/Quran";
 import Prayer from "./pages/Prayer";
 import SurahDetail from "./pages/SurahDetail";
 import Bookmarks from "./pages/Bookmarks";
-import MushafReader from "./pages/MushafReader";
 import Footer from "./components/Footer";
 
 function App() {
@@ -21,7 +20,6 @@ function App() {
             <Route path="/bookmarks" element={<Bookmarks />} />
             <Route path="/quran/:id" element={<SurahDetail />} />
             <Route path="/surah/:id" element={<SurahDetail />} />
-            <Route path="/mushaf/:id" element={<MushafReader />} />
           </Routes>
         </main>
         <Footer />
