@@ -10,6 +10,9 @@ module.exports = {
           dark: '#a67c00',
         },
       },
+      fontFamily: {
+        arabic: ['"Amiri"', '"Scheherazade"', 'serif'],
+      },
     },
   },
   plugins: [],
