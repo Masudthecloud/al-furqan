@@ -1,5 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
+# This workflow will build and deploy a Node.js application to an Azure Web App named 'alfurqan'.
+# It triggers on pushes to the main branch and can also be manually triggered.
 
 name: Build and deploy Node.js app to Azure Web App - alfurqan
 
