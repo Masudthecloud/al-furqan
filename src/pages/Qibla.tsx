@@ -24,8 +24,9 @@ const QiblaPage: React.FC = () => {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [bearing, setBearing] = useState<number>(0);
   const [error, setError] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [distance, setDistance] = useState<number>(0);
+  const [permissionRequested, setPermissionRequested] = useState<boolean>(false);
   const compassRef = useRef<HTMLDivElement>(null);
 
   // Calculate distance between two coordinates in km
@@ -44,6 +45,7 @@ const QiblaPage: React.FC = () => {
   const getLocation = () => {
     setIsLoading(true);
     setError('');
+    setPermissionRequested(true);
     
     if (!navigator.geolocation) {
       setError('Geolocation not supported by your browser.');
@@ -71,15 +73,22 @@ const QiblaPage: React.FC = () => {
         }
       },
       (err) => {
-        setError(err.message);
+        let errorMessage = err.message;
+        if (err.code === err.PERMISSION_DENIED) {
+          errorMessage = 'Please enable location permissions in your browser settings to use this feature.';
+        }
+        setError(errorMessage);
         setIsLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
+  // Check if geolocation is supported when component mounts
   useEffect(() => {
-    getLocation();
+    if (!navigator.geolocation) {
+      setError('Geolocation not supported by your browser.');
+    }
   }, []);
 
   return (
@@ -93,6 +102,21 @@ const QiblaPage: React.FC = () => {
           Find the direction to the Kaaba in Makkah
         </p>
 
+        {!permissionRequested && !position && !error && (
+          <div className="flex flex-col items-center justify-center py-8">
+            <button
+              onClick={getLocation}
+              className="flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors shadow-md"
+            >
+              <Locate className="w-5 h-5 mr-2" />
+              Find My Direction
+            </button>
+            <p className="mt-4 text-gray-500 dark:text-gray-400 text-center">
+              We'll ask for your location permission to calculate the Qibla direction
+            </p>
+          </div>
+        )}
+
         {error && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded">
             <p>{error}</p>
@@ -105,7 +129,7 @@ const QiblaPage: React.FC = () => {
           </div>
         )}
 
-        {!error && isLoading && (
+        {isLoading && (
           <div className="flex flex-col items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
             <p className="text-gray-700 dark:text-gray-300">Locating your position…</p>
@@ -134,7 +158,6 @@ const QiblaPage: React.FC = () => {
                 }}
               >
                 <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 -translate-y-full flex flex-col items-center">
-                  {/* Kaaba Icon - Using emoji as fallback */}
                   <div className="w-10 h-10 bg-black rounded-sm flex items-center justify-center shadow-lg mb-1">
                     <span className="text-white text-xl">🕋</span>
                   </div>
