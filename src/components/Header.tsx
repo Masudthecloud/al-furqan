@@ -1,3 +1,5 @@
+// src/components/Header.tsx
+
 import { Link } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 
@@ -27,6 +29,12 @@ export default function Header() {
               className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-colors font-medium"
             >
               Prayer Times
+            </Link>
+            <Link 
+              to="/qibla" 
+              className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-colors font-medium"
+            >
+              Qibla
             </Link>
             <Link 
               to="/bookmarks" 
