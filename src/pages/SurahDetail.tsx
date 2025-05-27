@@ -50,7 +50,7 @@ export default function SurahDetail() {
   const [filteredSurahList, setFilteredSurahList] = useState<SurahInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [translation, setTranslation] = useState("en.sahih");
-  const [reciter, setReciter] = useState("ar.alafasy");
+  const [reciter, setReciter] = useState("ar.minshawi"); // default reciter
   const [showTranslation, setShowTranslation] = useState(true);
   const [bookmarks, setBookmarks] = useState<number[]>([]);
   const [startAyah, setStartAyah] = useState(1);
@@ -76,10 +76,10 @@ export default function SurahDetail() {
   const isPlayingAllRef = useRef(false);
 
   const reciterBaseUrls: { [key: string]: string } = {
+    "ar.minshawi": "https://verses.quran.com/Minshawy/mp3",
     "ar.alafasy": "https://verses.quran.com/Alafasy/mp3",
     "ar.husary": "https://verses.quran.com/Husary/mp3",
     "ar.abdulbasitmurattal": "https://verses.quran.com/AbdulBasetMurattal/mp3",
-    "ar.minshawi": "https://verses.quran.com/Minshawy/mp3",
     "ar.saoodshuraym": "https://verses.quran.com/Shuraym/mp3",
   };
 
@@ -475,14 +475,13 @@ export default function SurahDetail() {
           <select
             value={reciter}
             onChange={(e) => setReciter(e.target.value)}
-            className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48"
           >
+            <option value="ar.minshawi">Al-Minshawi</option>
             <option value="ar.alafasy">Mishary Alafasy</option>
             <option value="ar.husary">Mahmoud Al-Hussary</option>
-            <option value="ar.abdulbasitmurattal">
-              Abdul Basit
-            </option>
-            <option value="ar.minshawi">Al-Minshawi</option>
+            <option value="ar.abdulbasitmurattal">Abdul Basit</option>
+            <option value="ar.saoodshuraym">Saood Shuraym</option> 
           </select>
         </div>
 
