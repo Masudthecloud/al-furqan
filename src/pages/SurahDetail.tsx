@@ -40,9 +40,11 @@ interface SurahInfo {
   englishName: string;
 }
 
-const SurahDetail = () => {
+export default function SurahDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  // --- state ---
   const [surah, setSurah] = useState<Surah | null>(null);
   const [surahList, setSurahList] = useState<SurahInfo[]>([]);
   const [filteredSurahList, setFilteredSurahList] = useState<SurahInfo[]>([]);
@@ -54,6 +56,9 @@ const SurahDetail = () => {
   const [startAyah, setStartAyah] = useState(1);
   const [endAyah, setEndAyah] = useState<number | null>(null);
   const [repeatEach, setRepeatEach] = useState(false);
+  const [repeatCount, setRepeatCount] = useState(1);
+  // currentRepeat will display either verse-repeat or selection-repeat count
+  const [currentRepeat, setCurrentRepeat] = useState(1);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [isPlayingAll, setIsPlayingAll] = useState(false);
   const [currentPlayingAyah, setCurrentPlayingAyah] = useState<number | null>(null);
@@ -61,10 +66,15 @@ const SurahDetail = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isSurahDropdownOpen, setIsSurahDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const currentAyahIndex = useRef<number>(0);
-  const ayahsToPlay = useRef<Ayah[]>([]);
   const [currentSurahNumber, setCurrentSurahNumber] = useState<number | null>(null);
+
+  // --- refs for playback logic ---
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ayahsToPlay = useRef<Ayah[]>([]);
+  const currentAyahIndex = useRef(0);
+  const verseRepeatCounterRef = useRef(0);
+  const selectionRepeatCounterRef = useRef(0);
+  const isPlayingAllRef = useRef(false);
 
   const reciterBaseUrls: { [key: string]: string } = {
     "ar.alafasy": "https://verses.quran.com/Alafasy/mp3",
@@ -74,47 +84,50 @@ const SurahDetail = () => {
     "ar.saoodshuraym": "https://verses.quran.com/Shuraym/mp3",
   };
 
+  // --- load bookmarks & surah list ---
   useEffect(() => {
     const saved = localStorage.getItem("bookmarks");
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setBookmarks(parsed);
-        }
-      } catch (e) {
-        console.error("Error parsing bookmarks:", e);
-      }
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr)) setBookmarks(arr);
+      } catch {}
     }
-    
     fetchSurahList().then((list) => {
       setSurahList(list);
       setFilteredSurahList(list);
     });
   }, []);
 
+  // --- track route param ---
   useEffect(() => {
     if (!id) return;
-    setCurrentSurahNumber(parseInt(id));
+    setCurrentSurahNumber(parseInt(id, 10));
   }, [id]);
 
+  // --- fetch surah data ---
   useEffect(() => {
     if (!currentSurahNumber) return;
-
-    const loadData = async () => {
+    const load = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        const [translated, arabic, audio] = await Promise.all([
-          fetchSurahByIdWithTranslation(currentSurahNumber.toString(), translation),
-          fetchSurahByIdWithTranslation(currentSurahNumber.toString(), "ar"),
+        const [trans, arabic, audio] = await Promise.all([
+          fetchSurahByIdWithTranslation(
+            currentSurahNumber.toString(),
+            translation
+          ),
+          fetchSurahByIdWithTranslation(
+            currentSurahNumber.toString(),
+            "ar"
+          ),
           fetchSurahAudio(currentSurahNumber.toString(), reciter),
         ]);
 
-        const mergedAyahs: Ayah[] = arabic.ayahs.map((ayah: Ayah, idx: number) => ({
-          number: idx + 1,
+        const merged = arabic.ayahs.map((ayah: Ayah, i: number) => ({
+          number: i + 1,
           text: ayah.text,
-          englishText: translated.ayahs[idx]?.text,
-          audio: audio[idx]?.audio,
+          englishText: trans.ayahs[i]?.text,
+          audio: audio[i]?.audio,
         }));
 
         setSurah({
@@ -122,265 +135,277 @@ const SurahDetail = () => {
           englishName: arabic.englishName,
           englishNameTranslation: arabic.englishNameTranslation,
           number: arabic.number,
-          ayahs: mergedAyahs,
+          ayahs: merged,
         });
-
-        setEndAyah(mergedAyahs.length);
-      } catch (err) {
-        console.error("Failed to load surah", err);
+        setEndAyah(merged.length);
+      } catch (e) {
+        console.error(e);
         setSurah(null);
       } finally {
         setLoading(false);
       }
     };
-
-    loadData();
+    load();
   }, [currentSurahNumber, translation, reciter]);
 
+  // sync volume/mute
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = isMuted ? 0 : volume;
     }
   }, [volume, isMuted]);
 
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
+  // cleanup on unmount
+  useEffect(
+    () => () => {
+      audioRef.current?.pause();
+      audioRef.current = null;
+    },
+    []
+  );
 
+  // --- Bookmark helpers ---
   const toggleBookmark = (ayahNum: number) => {
-    const surahNumber = parseInt(id || "1");
-    const bookmarkId = surahNumber * 1000 + ayahNum;
-    
-    let updated: number[] = [];
-    if (bookmarks.includes(bookmarkId)) {
-      updated = bookmarks.filter(b => b !== bookmarkId);
-    } else {
-      updated = [...bookmarks, bookmarkId];
-    }
-    
+    const sid = parseInt(id || "1", 10) * 1000 + ayahNum;
+    const updated = bookmarks.includes(sid)
+      ? bookmarks.filter((b) => b !== sid)
+      : [...bookmarks, sid];
     setBookmarks(updated);
     localStorage.setItem("bookmarks", JSON.stringify(updated));
   };
+  const isAyahBookmarked = (n: number) =>
+    bookmarks.includes(parseInt(id || "1", 10) * 1000 + n);
 
-  const isAyahBookmarked = (ayahNum: number) => {
-    const surahNumber = parseInt(id || "1");
-    const bookmarkId = surahNumber * 1000 + ayahNum;
-    return bookmarks.includes(bookmarkId);
+  // --- Bismillah logic ---
+  const shouldPlayBismillah = () =>
+    currentAyahIndex.current === 0 &&
+    startAyah === 1 &&
+    surah &&
+    ![1, 9].includes(surah.number) &&
+    !!reciterBaseUrls[reciter];
+
+  const playBismillah = () =>
+    new Promise<void>((resolve) => {
+      const url = `${reciterBaseUrls[reciter]}/001001.mp3`;
+      const b = new Audio(url);
+      audioRef.current = b;
+      b.volume = isMuted ? 0 : volume;
+      b.play();
+      b.onended = () => resolve();
+    });
+
+  // --- stop everything ---
+  const stopPlayback = () => {
+    audioRef.current?.pause();
+    isPlayingAllRef.current = false;
+    setIsPlayingAll(false);
+    setPlayingIndex(null);
+    setCurrentPlayingAyah(null);
+    setCurrentRepeat(1);
+    verseRepeatCounterRef.current = 0;
+    selectionRepeatCounterRef.current = 0;
   };
 
-  const playAyah = async (ayah: Ayah, index: number) => {
-    if (!surah) return;
+  // --- core “play next” (handles both modes) ---
+  const playNextAyah = () => {
+    if (!ayahsToPlay.current.length) {
+      return stopPlayback();
+    }
 
-    if (playingIndex === index && audioRef.current) {
+    const localIdx = currentAyahIndex.current;
+    const ayah = ayahsToPlay.current[localIdx];
+    const globalIdx = startAyah - 1 + localIdx;
+
+    setPlayingIndex(globalIdx);
+    setCurrentPlayingAyah(ayah.number);
+
+    // drop old audio
+    audioRef.current?.pause();
+    audioRef.current = null;
+
+    const kickOff = () => {
+      const a = new Audio(ayah.audio!);
+      audioRef.current = a;
+      a.volume = isMuted ? 0 : volume;
+      a.play();
+      a.onended = () => {
+        if (repeatEach) {
+          // --- per-verse repeat logic ---
+          if (verseRepeatCounterRef.current < repeatCount - 1) {
+            verseRepeatCounterRef.current++;
+            setCurrentRepeat(verseRepeatCounterRef.current + 1);
+            a.play();
+          } else {
+            // move to next verse
+            verseRepeatCounterRef.current = 0;
+            setCurrentRepeat(1);
+            currentAyahIndex.current++;
+            if (currentAyahIndex.current < ayahsToPlay.current.length) {
+              playNextAyah();
+            } else {
+              stopPlayback();
+            }
+          }
+        } else {
+          // --- entire-selection repeat logic ---
+          currentAyahIndex.current++;
+          if (currentAyahIndex.current < ayahsToPlay.current.length) {
+            playNextAyah();
+          } else {
+            // finished one pass
+            selectionRepeatCounterRef.current++;
+            if (selectionRepeatCounterRef.current < repeatCount) {
+              setCurrentRepeat(selectionRepeatCounterRef.current + 1);
+              currentAyahIndex.current = 0;
+              playNextAyah();
+            } else {
+              stopPlayback();
+            }
+          }
+        }
+      };
+    };
+
+    if (shouldPlayBismillah()) {
+      playBismillah().then(kickOff);
+    } else {
+      kickOff();
+    }
+  };
+
+  // --- Play All entrypoint ---
+  const playAll = () => {
+    if (!surah) return;
+    if (isPlayingAllRef.current) {
+      return stopPlayback();
+    }
+    // prepare the slice
+    ayahsToPlay.current = surah.ayahs.slice(
+      startAyah - 1,
+      endAyah ?? surah.ayahs.length
+    );
+    currentAyahIndex.current = 0;
+    verseRepeatCounterRef.current = 0;
+    selectionRepeatCounterRef.current = 0;
+    setCurrentRepeat(1);
+    isPlayingAllRef.current = true;
+    setIsPlayingAll(true);
+    playNextAyah();
+  };
+
+  // --- single-ayah play/pause ---
+  const playAyah = async (ayah: Ayah, idx: number) => {
+    if (playingIndex === idx && audioRef.current) {
+      // toggle pause/play
       if (audioRef.current.paused) {
         await audioRef.current.play();
-        setIsPlayingAll(true);
       } else {
         audioRef.current.pause();
-        setIsPlayingAll(false);
       }
       return;
     }
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-
-    setPlayingIndex(index);
+    audioRef.current?.pause();
+    setPlayingIndex(idx);
     setCurrentPlayingAyah(ayah.number);
-    currentAyahIndex.current = index - startAyah + 1;
-    setIsPlayingAll(true);
+    isPlayingAllRef.current = false;
+    setIsPlayingAll(false);
 
-    const audioElement = new Audio(ayah.audio!);
-    audioRef.current = audioElement;
-    audioElement.volume = isMuted ? 0 : volume;
-
-    await audioElement.play();
-    audioElement.onended = () => {
+    const a = new Audio(ayah.audio!);
+    audioRef.current = a;
+    a.volume = isMuted ? 0 : volume;
+    await a.play();
+    a.onended = () => {
       setPlayingIndex(null);
       setCurrentPlayingAyah(null);
-      setIsPlayingAll(false);
     };
   };
 
-  const playAll = async () => {
-    if (!surah) return;
-
-    if (isPlayingAll) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      setIsPlayingAll(false);
-      setPlayingIndex(null);
-      setCurrentPlayingAyah(null);
-      return;
-    }
-
-    ayahsToPlay.current = surah.ayahs.slice(startAyah - 1, endAyah ?? surah.ayahs.length);
-    currentAyahIndex.current = 0;
-    setIsPlayingAll(true);
-    await playNextAyah();
-  };
-
-  const playNextAyah = async () => {
-    if (!isPlayingAll || !ayahsToPlay.current.length || currentAyahIndex.current >= ayahsToPlay.current.length) {
-      setIsPlayingAll(false);
-      setPlayingIndex(null);
-      setCurrentPlayingAyah(null);
-      return;
-    }
-
-    const ayah = ayahsToPlay.current[currentAyahIndex.current];
-    const index = startAyah - 1 + currentAyahIndex.current;
-    setPlayingIndex(index);
-    setCurrentPlayingAyah(ayah.number);
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-
-    if (
-      currentAyahIndex.current === 0 &&
-      startAyah === 1 &&
-      surah &&
-      surah.number !== 1 &&
-      surah.number !== 9 &&
-      reciterBaseUrls[reciter]
-    ) {
-      const bismillahAudio = new Audio(`${reciterBaseUrls[reciter]}/001001.mp3`);
-      audioRef.current = bismillahAudio;
-      bismillahAudio.volume = isMuted ? 0 : volume;
-
-      await new Promise<void>((resolve) => {
-        bismillahAudio.play();
-        bismillahAudio.onended = () => resolve();
-      });
-    }
-
-    const audioElement = new Audio(ayah.audio!);
-    audioRef.current = audioElement;
-    audioElement.volume = isMuted ? 0 : volume;
-
-    await audioElement.play();
-    audioElement.onended = () => {
-      if (repeatEach) {
-        audioElement.play();
-      } else {
-        currentAyahIndex.current++;
-        playNextAyah();
-      }
-    };
-  };
-
+  // --- nav helpers ---
   const playNext = () => {
-    if (!surah) return;
-
-    if (isPlayingAll) {
-      if (currentAyahIndex.current < ayahsToPlay.current.length - 1) {
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
-        currentAyahIndex.current++;
-        playNextAyah();
-      } else {
-        nextSurah();
-      }
-    } else if (playingIndex !== null && playingIndex < surah.ayahs.length - 1) {
+    if (isPlayingAllRef.current) return;
+    if (
+      playingIndex !== null &&
+      surah &&
+      playingIndex < surah.ayahs.length - 1
+    ) {
       playAyah(surah.ayahs[playingIndex + 1], playingIndex + 1);
     } else {
       nextSurah();
     }
   };
-
   const playPrevious = () => {
-    if (!surah) return;
-
-    if (isPlayingAll) {
-      if (currentAyahIndex.current > 0) {
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
-        currentAyahIndex.current--;
-        playNextAyah();
-      } else {
-        prevSurah();
-      }
-    } else if (playingIndex !== null && playingIndex > 0) {
+    if (isPlayingAllRef.current) return;
+    if (playingIndex !== null && playingIndex > 0 && surah) {
       playAyah(surah.ayahs[playingIndex - 1], playingIndex - 1);
     } else {
       prevSurah();
     }
   };
-
-  const navigateToSurah = (surahNumber: number) => {
-    setCurrentSurahNumber(surahNumber);
-    navigate(`/surah/${surahNumber}`);
-    if (isPlayingAll && surah) {
-      setStartAyah(1);
-      setEndAyah(null);
-      setTimeout(() => playAll(), 500);
+  const navigateToSurah = (num: number) => {
+    setCurrentSurahNumber(num);
+    navigate(`/surah/${num}`);
+    if (isPlayingAllRef.current) {
+      setTimeout(playAll, 300);
     }
   };
-
   const nextSurah = () => {
-    if (!surahList.length) return;
-    const next = currentSurahNumber && currentSurahNumber < 114 ? currentSurahNumber + 1 : 1;
-    navigateToSurah(next);
+    if (!surahList.length || !currentSurahNumber) return;
+    const nxt = currentSurahNumber < 114 ? currentSurahNumber + 1 : 1;
+    navigateToSurah(nxt);
   };
-
   const prevSurah = () => {
-    if (!surahList.length) return;
-    const prev = currentSurahNumber && currentSurahNumber > 1 ? currentSurahNumber - 1 : 114;
+    if (!surahList.length || !currentSurahNumber) return;
+    const prev = currentSurahNumber > 1 ? currentSurahNumber - 1 : 114;
     navigateToSurah(prev);
   };
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? volume : 0;
-    }
-  };
-
+  // --- UI handlers ---
+  const toggleMute = () => setIsMuted((m) => !m);
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-    setIsMuted(newVolume === 0);
+    const v = parseFloat(e.target.value);
+    setVolume(v);
+    setIsMuted(v === 0);
   };
-
   const handleSurahSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value.toLowerCase();
-    setSearchQuery(query);
-    if (query === "") {
-      setFilteredSurahList(surahList);
-    } else {
-      const filtered = surahList.filter(s => 
-        s.englishName.toLowerCase().includes(query) || 
-        s.name.toLowerCase().includes(query) ||
-        s.number.toString().includes(query)
-      );
-      setFilteredSurahList(filtered);
-    }
+    const q = e.target.value.toLowerCase();
+    setSearchQuery(q);
+    setFilteredSurahList(
+      q
+        ? surahList.filter(
+            (s) =>
+              s.englishName.toLowerCase().includes(q) ||
+              s.name.toLowerCase().includes(q) ||
+              s.number.toString().includes(q)
+          )
+        : surahList
+    );
   };
 
-  if (loading) return <p className="text-center mt-10 text-gray-600 dark:text-gray-300">Loading Surah...</p>;
-  if (!surah) return <p className="text-center mt-10 text-red-600 dark:text-red-400">Surah not found.</p>;
+  if (loading)
+    return (
+      <p className="text-center mt-10 text-gray-600 dark:text-gray-300">
+        Loading Surah...
+      </p>
+    );
+  if (!surah)
+    return (
+      <p className="text-center mt-10 text-red-600 dark:text-red-400">
+        Surah not found.
+      </p>
+    );
 
   return (
-    <div className="p-4 max-w-4xl mx-auto dark:bg-gray-900 min-h-[calc(100vh-80px)] pb-24">
-      {/* Header Section */}
+    <div className="p-4 max-w-4xl mx-auto dark:bg-gray-900 pb-24 min-h-[calc(100vh-80px)]">
+      {/* Header */}
       <div className="mb-6">
+        {/* Surah dropdown & translation toggle */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-4">
-            {/* Enhanced Surah Dropdown with Search */}
             <div className="relative">
               <button
-                onClick={() => setIsSurahDropdownOpen(!isSurahDropdownOpen)}
+                onClick={() =>
+                  setIsSurahDropdownOpen(!isSurahDropdownOpen)
+                }
                 className="flex items-center gap-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm font-medium"
               >
                 {surah.englishName} ({surah.name})
@@ -391,10 +416,8 @@ const SurahDetail = () => {
                   size={12}
                 />
               </button>
-              
               {isSurahDropdownOpen && (
                 <div className="absolute z-50 mt-1 w-56 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700">
-                  {/* Search Input */}
                   <div className="sticky top-0 p-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -410,8 +433,6 @@ const SurahDetail = () => {
                       />
                     </div>
                   </div>
-                  
-                  {/* Filtered Surah List */}
                   <div className="py-1">
                     {filteredSurahList.length > 0 ? (
                       filteredSurahList.map((s) => (
@@ -445,7 +466,9 @@ const SurahDetail = () => {
               <input
                 type="checkbox"
                 checked={showTranslation}
-                onChange={() => setShowTranslation(!showTranslation)}
+                onChange={() =>
+                  setShowTranslation(!showTranslation)
+                }
                 className="rounded text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-600"
               />
               Translation
@@ -453,6 +476,7 @@ const SurahDetail = () => {
           </div>
         </div>
 
+        {/* Translation & reciter selects */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <select
             value={translation}
@@ -471,11 +495,14 @@ const SurahDetail = () => {
           >
             <option value="ar.alafasy">Mishary Alafasy</option>
             <option value="ar.husary">Mahmoud Al-Hussary</option>
-            <option value="ar.abdulbasitmurattal">Abdul Basit</option>
+            <option value="ar.abdulbasitmurattal">
+              Abdul Basit
+            </option>
             <option value="ar.minshawi">Al-Minshawi</option>
           </select>
         </div>
 
+        {/* Play-All controls */}
         <div className="flex items-center gap-3 mb-4 text-sm">
           <label className="text-gray-700 dark:text-gray-300">
             From:
@@ -485,8 +512,11 @@ const SurahDetail = () => {
               max={surah.ayahs.length}
               value={startAyah}
               onChange={(e) => {
-                const val = Math.max(1, Math.min(surah.ayahs.length, Number(e.target.value)));
-                setStartAyah(val);
+                const v = Math.max(
+                  1,
+                  Math.min(surah.ayahs.length, Number(e.target.value))
+                );
+                setStartAyah(v);
               }}
               className="ml-1 border border-gray-300 dark:border-gray-600 rounded w-12 px-2 py-1 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
@@ -499,11 +529,17 @@ const SurahDetail = () => {
               max={surah.ayahs.length}
               value={endAyah ?? ""}
               onChange={(e) => {
-                const val =
+                const v =
                   e.target.value === ""
                     ? null
-                    : Math.max(1, Math.min(surah.ayahs.length, Number(e.target.value)));
-                setEndAyah(val);
+                    : Math.max(
+                        1,
+                        Math.min(
+                          surah.ayahs.length,
+                          Number(e.target.value)
+                        )
+                      );
+                setEndAyah(v);
               }}
               className="ml-1 border border-gray-300 dark:border-gray-600 rounded w-12 px-2 py-1 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
@@ -515,13 +551,42 @@ const SurahDetail = () => {
               onChange={() => setRepeatEach(!repeatEach)}
               className="rounded text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-600"
             />
-            Repeat
+            Repeat Each (verse)
           </label>
+          <label className="text-gray-700 dark:text-gray-300">
+            Repeat:
+            <select
+              value={repeatCount}
+              onChange={(e) => setRepeatCount(Number(e.target.value))}
+              className="ml-1 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {[1, 2, 3, 4, 5].map((num) => (
+                <option key={num} value={num}>
+                  {num}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            onClick={playAll}
+            className={`px-3 py-1 rounded-md text-sm ${
+              isPlayingAll
+                ? "bg-red-500 hover:bg-red-600 text-white"
+                : "bg-green-500 hover:bg-green-600 text-white"
+            }`}
+          >
+            {isPlayingAll ? "Stop Play All" : "Play All"}
+          </button>
+          {isPlayingAll && repeatCount > 1 && (
+            <span className="text-sm text-gray-600 dark:text-gray-300">
+              (Repeat {currentRepeat} of {repeatCount})
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Bismillah - with null check */}
-      {surah && surah.number !== 1 && surah.number !== 9 && (
+      {/* Bismillah */}
+      {surah && ![1, 9].includes(surah.number) && (
         <div className="w-full flex justify-center my-6">
           <p className="font-arabic text-3xl text-center text-gray-800 dark:text-gray-200">
             بِسْمِ اللَّهِ الرَّحْمَـٰنِ الرَّحِيمِ
@@ -529,12 +594,16 @@ const SurahDetail = () => {
         </div>
       )}
 
-      {/* Ayahs List */}
+      {/* Ayahs */}
       <div className="space-y-5">
         {surah.ayahs.map((ayah, index) => {
           const showArabic =
-            index === 0 && surah.number !== 1 && surah.number !== 9
-              ? ayah.text.replace(/^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ[\s\u200C]*[,،]?/u, "")
+            index === 0 &&
+            ![1, 9].includes(surah.number)
+              ? ayah.text.replace(
+                  /^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ[\s\u200C]*[,،]?/u,
+                  ""
+                )
               : ayah.text;
 
           return (
@@ -570,7 +639,7 @@ const SurahDetail = () => {
 
               {showTranslation && (
                 <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
-                  {ayah.englishText || ""}
+                  {ayah.englishText}
                 </p>
               )}
 
@@ -595,15 +664,15 @@ const SurahDetail = () => {
         })}
       </div>
 
-      {/* Fixed Mini Player */}
+      {/* Footer Player */}
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 shadow-lg z-50 h-[80px] backdrop-blur-sm bg-opacity-90 dark:bg-opacity-90">
         <div className="max-w-4xl mx-auto h-full">
           <div className="flex items-center justify-between gap-4 h-full">
-            {/* Surah Navigation */}
+            {/* Surah nav */}
             <div className="flex items-center gap-2">
               <button
                 onClick={prevSurah}
-                className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
                 title="Previous Surah"
               >
                 <FaStepBackward />
@@ -613,14 +682,13 @@ const SurahDetail = () => {
               </div>
               <button
                 onClick={nextSurah}
-                className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
                 title="Next Surah"
               >
                 <FaStepForward />
               </button>
             </div>
-
-            {/* Ayah Navigation */}
+            {/* Ayah nav/play */}
             <div className="flex items-center gap-2">
               <button
                 onClick={playPrevious}
@@ -632,7 +700,7 @@ const SurahDetail = () => {
               </button>
               <button
                 onClick={() => {
-                  if (isPlayingAll || playingIndex !== null) {
+                  if (isPlayingAllRef.current || playingIndex !== null) {
                     if (audioRef.current?.paused) {
                       audioRef.current.play();
                       setIsPlayingAll(true);
@@ -645,9 +713,19 @@ const SurahDetail = () => {
                   }
                 }}
                 className="p-3 rounded-full bg-blue-500 text-white hover:bg-blue-600"
-                title={isPlayingAll ? "Pause" : "Play"}
+                title={
+                  isPlayingAll
+                    ? "Pause"
+                    : playingIndex !== null
+                    ? "Resume"
+                    : "Play All"
+                }
               >
-                {isPlayingAll ? <FaPause /> : <FaPlay />}
+                {isPlayingAll || playingIndex !== null ? (
+                  <FaPause />
+                ) : (
+                  <FaPlay />
+                )}
               </button>
               <button
                 onClick={playNext}
@@ -658,21 +736,14 @@ const SurahDetail = () => {
                 <FaStepForward />
               </button>
             </div>
-
-            {/* Volume Controls */}
+            {/* Volume */}
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleMute}
                 className="p-2 text-gray-700 dark:text-gray-300"
                 title={isMuted ? "Unmute" : "Mute"}
               >
-                {isMuted ? (
-                  <FaVolumeMute />
-                ) : volume > 0.5 ? (
-                  <FaVolumeUp />
-                ) : (
-                  <FaVolumeDown />
-                )}
+                {isMuted ? <FaVolumeMute /> : volume > 0.5 ? <FaVolumeUp /> : <FaVolumeDown />}
               </button>
               <input
                 type="range"
@@ -684,16 +755,19 @@ const SurahDetail = () => {
                 className="w-20 accent-blue-500"
               />
             </div>
-
-            {/* Current Ayah Info */}
+            {/* Status */}
             <div className="text-sm text-gray-700 dark:text-gray-300 min-w-[80px] text-right">
               {currentPlayingAyah ? `Ayah ${currentPlayingAyah}` : "Not Playing"}
             </div>
           </div>
+          {/* Footer repeat indicator */}
+          {isPlayingAll && repeatCount > 1 && (
+            <div className="text-xs text-center text-gray-500 dark:text-gray-400 mt-1">
+              Repeat {currentRepeat} of {repeatCount}
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
-};
-
-export default SurahDetail;
+}
