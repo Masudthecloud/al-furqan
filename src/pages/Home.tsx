@@ -50,7 +50,7 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Holy Quran</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Read with translations and tafsir</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Read with translations</p>
             </div>
           </Link>
 
@@ -65,7 +65,7 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Prayer Times</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Accurate salah times & qibla</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Accurate salah times</p>
             </div>
           </Link>
 
@@ -83,13 +83,6 @@ export default function Home() {
               <p className="text-sm text-gray-600 dark:text-gray-400">Save your favorite verses</p>
             </div>
           </Link>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-20 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-500">
-            Made with devotion for the Ummah
-          </p>
         </div>
       </div>
     </div>
