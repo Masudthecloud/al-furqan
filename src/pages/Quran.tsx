@@ -10,11 +10,27 @@ interface Surah {
   revelationType: "Meccan" | "Medinan";
 }
 
+// Chronological revelation order (Ibn Abbas / al-Zanjani traditional sequence)
+const revelationOrder: number[] = [
+  96, 68, 73, 74, 1, 111, 81, 87, 92, 89,
+  93, 94, 103, 100, 108, 102, 107, 109, 105, 113,
+  114, 112, 53, 80, 97, 91, 85, 95, 106, 101,
+  75, 104, 77, 50, 90, 86, 54, 38, 7, 72,
+  36, 25, 35, 19, 20, 56, 26, 27, 28, 17,
+  10, 11, 12, 15, 6, 37, 31, 34, 39, 40,
+  41, 42, 43, 44, 45, 46, 51, 88, 18, 16,
+  71, 14, 21, 23, 32, 52, 67, 69, 70, 78,
+  79, 82, 84, 30, 29, 83, 2, 8, 3, 33,
+  60, 4, 99, 57, 47, 13, 55, 76, 65, 98,
+  59, 24, 22, 63, 58, 49, 66, 64, 61, 62,
+  48, 5, 9, 110
+];
+
 export default function Quran() {
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [filteredSurahs, setFilteredSurahs] = useState<Surah[]>([]);
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("default");
+  const [sort, setSort] = useState<"default" | "alpha" | "reveal">("default");
 
   useEffect(() => {
     fetchSurahList()
@@ -30,9 +46,19 @@ export default function Quran() {
     const sorted = [...surahs];
 
     if (sort === "alpha") {
+      // Alphabetical by English name
       sorted.sort((a, b) => a.englishName.localeCompare(b.englishName));
+    } else if (sort === "reveal") {
+      // Chronological revelation order
+      sorted.sort((a, b) => {
+        const ia = revelationOrder.indexOf(a.number);
+        const ib = revelationOrder.indexOf(b.number);
+        const safeA = ia === -1 ? Number.POSITIVE_INFINITY : ia;
+        const safeB = ib === -1 ? Number.POSITIVE_INFINITY : ib;
+        return safeA - safeB;
+      });
     } else {
-      // both "default" and "reveal" fall back to numeric
+      // Default: numeric by surah number
       sorted.sort((a, b) => a.number - b.number);
     }
 
@@ -81,7 +107,7 @@ export default function Quran() {
         {/* Sort Dropdown */}
         <select
           value={sort}
-          onChange={(e) => setSort(e.target.value)}
+          onChange={(e) => setSort(e.target.value as any)}
           className="
             p-3
             bg-white dark:bg-gray-800
