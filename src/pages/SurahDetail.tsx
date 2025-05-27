@@ -76,7 +76,17 @@ const SurahDetail = () => {
 
   useEffect(() => {
     const saved = localStorage.getItem("bookmarks");
-    if (saved) setBookmarks(JSON.parse(saved));
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setBookmarks(parsed);
+        }
+      } catch (e) {
+        console.error("Error parsing bookmarks:", e);
+      }
+    }
+    
     fetchSurahList().then((list) => {
       setSurahList(list);
       setFilteredSurahList(list);
@@ -143,11 +153,24 @@ const SurahDetail = () => {
   }, []);
 
   const toggleBookmark = (ayahNum: number) => {
-    const updated = bookmarks.includes(ayahNum)
-      ? bookmarks.filter((b) => b !== ayahNum)
-      : [...bookmarks, ayahNum];
+    const surahNumber = parseInt(id || "1");
+    const bookmarkId = surahNumber * 1000 + ayahNum;
+    
+    let updated: number[] = [];
+    if (bookmarks.includes(bookmarkId)) {
+      updated = bookmarks.filter(b => b !== bookmarkId);
+    } else {
+      updated = [...bookmarks, bookmarkId];
+    }
+    
     setBookmarks(updated);
     localStorage.setItem("bookmarks", JSON.stringify(updated));
+  };
+
+  const isAyahBookmarked = (ayahNum: number) => {
+    const surahNumber = parseInt(id || "1");
+    const bookmarkId = surahNumber * 1000 + ayahNum;
+    return bookmarks.includes(bookmarkId);
   };
 
   const playAyah = async (ayah: Ayah, index: number) => {
@@ -517,6 +540,7 @@ const SurahDetail = () => {
           return (
             <div
               key={ayah.number}
+              id={`ayah-${ayah.number}`}
               className={`p-4 rounded-lg transition-all duration-200 ${
                 index === playingIndex
                   ? "bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-500"
@@ -532,7 +556,7 @@ const SurahDetail = () => {
                   className="text-gray-400 hover:text-yellow-500 dark:hover:text-yellow-400"
                   title="Bookmark"
                 >
-                  {bookmarks.includes(ayah.number) ? (
+                  {isAyahBookmarked(ayah.number) ? (
                     <FaStar className="text-yellow-500" />
                   ) : (
                     <FaRegStar />
