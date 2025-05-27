@@ -16,6 +16,7 @@ import {
   FaVolumeDown,
   FaVolumeMute,
   FaChevronDown,
+  FaSearch,
 } from "react-icons/fa";
 
 interface Ayah {
@@ -44,6 +45,7 @@ const SurahDetail = () => {
   const navigate = useNavigate();
   const [surah, setSurah] = useState<Surah | null>(null);
   const [surahList, setSurahList] = useState<SurahInfo[]>([]);
+  const [filteredSurahList, setFilteredSurahList] = useState<SurahInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [translation, setTranslation] = useState("en.sahih");
   const [reciter, setReciter] = useState("ar.alafasy");
@@ -58,6 +60,7 @@ const SurahDetail = () => {
   const [volume, setVolume] = useState(0.7);
   const [isMuted, setIsMuted] = useState(false);
   const [isSurahDropdownOpen, setIsSurahDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentAyahIndex = useRef<number>(0);
   const ayahsToPlay = useRef<Ayah[]>([]);
@@ -74,7 +77,10 @@ const SurahDetail = () => {
   useEffect(() => {
     const saved = localStorage.getItem("bookmarks");
     if (saved) setBookmarks(JSON.parse(saved));
-    fetchSurahList().then((list) => setSurahList(list));
+    fetchSurahList().then((list) => {
+      setSurahList(list);
+      setFilteredSurahList(list);
+    });
   }, []);
 
   useEffect(() => {
@@ -324,20 +330,35 @@ const SurahDetail = () => {
     setIsMuted(newVolume === 0);
   };
 
-  if (loading) return <p className="text-center mt-10">Loading Surah...</p>;
-  if (!surah) return <p className="text-center mt-10 text-red-600">Surah not found.</p>;
+  const handleSurahSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+    if (query === "") {
+      setFilteredSurahList(surahList);
+    } else {
+      const filtered = surahList.filter(s => 
+        s.englishName.toLowerCase().includes(query) || 
+        s.name.toLowerCase().includes(query) ||
+        s.number.toString().includes(query)
+      );
+      setFilteredSurahList(filtered);
+    }
+  };
+
+  if (loading) return <p className="text-center mt-10 text-gray-600 dark:text-gray-300">Loading Surah...</p>;
+  if (!surah) return <p className="text-center mt-10 text-red-600 dark:text-red-400">Surah not found.</p>;
 
   return (
-    <div className="p-4 max-w-4xl mx-auto dark:bg-gray-900 min-h-[calc(100vh-80px)] pb-4">
+    <div className="p-4 max-w-4xl mx-auto dark:bg-gray-900 min-h-[calc(100vh-80px)] pb-24">
       {/* Header Section */}
       <div className="mb-6">
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-4">
-            {/* Surah Dropdown Navigation */}
+            {/* Enhanced Surah Dropdown with Search */}
             <div className="relative">
               <button
                 onClick={() => setIsSurahDropdownOpen(!isSurahDropdownOpen)}
-                className="flex items-center gap-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-sm font-medium"
+                className="flex items-center gap-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm font-medium"
               >
                 {surah.englishName} ({surah.name})
                 <FaChevronDown
@@ -347,25 +368,50 @@ const SurahDetail = () => {
                   size={12}
                 />
               </button>
+              
               {isSurahDropdownOpen && (
                 <div className="absolute z-50 mt-1 w-56 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700">
+                  {/* Search Input */}
+                  <div className="sticky top-0 p-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FaSearch className="text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={handleSurahSearch}
+                        placeholder="Search surahs..."
+                        className="w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Filtered Surah List */}
                   <div className="py-1">
-                    {surahList.map((s) => (
-                      <button
-                        key={s.number}
-                        onClick={() => {
-                          navigateToSurah(s.number);
-                          setIsSurahDropdownOpen(false);
-                        }}
-                        className={`block w-full text-left px-4 py-2 text-sm ${
-                          s.number === surah.number
-                            ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
-                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        }`}
-                      >
-                        {s.number}. {s.englishName} ({s.name})
-                      </button>
-                    ))}
+                    {filteredSurahList.length > 0 ? (
+                      filteredSurahList.map((s) => (
+                        <button
+                          key={s.number}
+                          onClick={() => {
+                            navigateToSurah(s.number);
+                            setIsSurahDropdownOpen(false);
+                          }}
+                          className={`block w-full text-left px-4 py-2 text-sm ${
+                            s.number === surah.number
+                              ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                              : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          {s.number}. {s.englishName} ({s.name})
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                        No surahs found
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -377,7 +423,7 @@ const SurahDetail = () => {
                 type="checkbox"
                 checked={showTranslation}
                 onChange={() => setShowTranslation(!showTranslation)}
-                className="rounded"
+                className="rounded text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-600"
               />
               Translation
             </label>
@@ -388,7 +434,7 @@ const SurahDetail = () => {
           <select
             value={translation}
             onChange={(e) => setTranslation(e.target.value)}
-            className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-sm"
+            className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="en.sahih">Sahih International</option>
             <option value="en.yusufali">Yusuf Ali</option>
@@ -398,7 +444,7 @@ const SurahDetail = () => {
           <select
             value={reciter}
             onChange={(e) => setReciter(e.target.value)}
-            className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-sm"
+            className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="ar.alafasy">Mishary Alafasy</option>
             <option value="ar.husary">Mahmoud Al-Hussary</option>
@@ -419,7 +465,7 @@ const SurahDetail = () => {
                 const val = Math.max(1, Math.min(surah.ayahs.length, Number(e.target.value)));
                 setStartAyah(val);
               }}
-              className="ml-1 border border-gray-300 dark:border-gray-600 rounded w-12 px-2 py-1 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-300"
+              className="ml-1 border border-gray-300 dark:border-gray-600 rounded w-12 px-2 py-1 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
           <label className="text-gray-700 dark:text-gray-300">
@@ -436,7 +482,7 @@ const SurahDetail = () => {
                     : Math.max(1, Math.min(surah.ayahs.length, Number(e.target.value)));
                 setEndAyah(val);
               }}
-              className="ml-1 border border-gray-300 dark:border-gray-600 rounded w-12 px-2 py-1 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-300"
+              className="ml-1 border border-gray-300 dark:border-gray-600 rounded w-12 px-2 py-1 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </label>
           <label className="flex items-center gap-1 text-gray-700 dark:text-gray-300">
@@ -444,7 +490,7 @@ const SurahDetail = () => {
               type="checkbox"
               checked={repeatEach}
               onChange={() => setRepeatEach(!repeatEach)}
-              className="rounded"
+              className="rounded text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-600"
             />
             Repeat
           </label>
