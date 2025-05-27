@@ -31,9 +31,8 @@ export default function Quran() {
 
     if (sort === "alpha") {
       sorted.sort((a, b) => a.englishName.localeCompare(b.englishName));
-    } else if (sort === "reveal") {
-      sorted.sort((a, b) => a.number - b.number);
     } else {
+      // both "default" and "reveal" fall back to numeric
       sorted.sort((a, b) => a.number - b.number);
     }
 
@@ -41,7 +40,7 @@ export default function Quran() {
       sorted.filter(
         (s) =>
           s.englishName.toLowerCase().includes(term) ||
-          s.name.includes(term) ||
+          s.name.toLowerCase().includes(term) ||
           s.englishNameTranslation.toLowerCase().includes(term)
       )
     );
@@ -58,20 +57,39 @@ export default function Quran() {
         </p>
       </div>
 
+      {/* Search & Sort */}
       <div className="flex flex-col md:flex-row gap-4 mb-8 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm sticky top-16 z-10">
+        {/* Search Input */}
         <div className="flex-1">
           <input
             type="text"
             placeholder="Search Surahs..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800"
+            className="
+              w-full p-3
+              bg-white dark:bg-gray-800
+              text-gray-900 dark:text-gray-100
+              placeholder-gray-500 dark:placeholder-gray-400
+              border border-gray-200 dark:border-gray-700
+              rounded-lg
+              focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
+            "
           />
         </div>
+
+        {/* Sort Dropdown */}
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
+          className="
+            p-3
+            bg-white dark:bg-gray-800
+            text-gray-900 dark:text-gray-100
+            border border-gray-200 dark:border-gray-700
+            rounded-lg
+            focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
+          "
         >
           <option value="default">Default Order</option>
           <option value="alpha">Alphabetical</option>
@@ -79,17 +97,26 @@ export default function Quran() {
         </select>
       </div>
 
+      {/* Surah Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredSurahs.map((surah) => (
-          <Link 
-            to={`/surah/${surah.number}`} 
+          <Link
+            to={`/surah/${surah.number}`}
             key={surah.number}
             className="card hover:shadow-lg transition-all"
           >
             <div className="p-5">
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="w-10 h-10 flex items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 font-bold mb-2">
+                  <div
+                    className="
+                      w-10 h-10 flex items-center justify-center
+                      rounded-full
+                      bg-green-100 dark:bg-green-900/30
+                      text-green-600 dark:text-green-400
+                      font-bold mb-2
+                    "
+                  >
                     {surah.number}
                   </div>
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -104,11 +131,16 @@ export default function Quran() {
                 </span>
               </div>
               <div className="mt-3">
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                  surah.revelationType === "Meccan"
-                    ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
-                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                }`}>
+                <span
+                  className={`
+                    text-xs font-medium px-2 py-1 rounded-full
+                    ${
+                      surah.revelationType === "Meccan"
+                        ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                        : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                    }
+                  `}
+                >
                   {surah.revelationType === "Meccan" ? "Makki" : "Madani"}
                 </span>
               </div>

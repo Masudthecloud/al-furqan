@@ -44,7 +44,7 @@ export default function SurahDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // --- state ---
+  // state
   const [surah, setSurah] = useState<Surah | null>(null);
   const [surahList, setSurahList] = useState<SurahInfo[]>([]);
   const [filteredSurahList, setFilteredSurahList] = useState<SurahInfo[]>([]);
@@ -57,7 +57,6 @@ export default function SurahDetail() {
   const [endAyah, setEndAyah] = useState<number | null>(null);
   const [repeatEach, setRepeatEach] = useState(false);
   const [repeatCount, setRepeatCount] = useState(1);
-  // currentRepeat will display either verse-repeat or selection-repeat count
   const [currentRepeat, setCurrentRepeat] = useState(1);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [isPlayingAll, setIsPlayingAll] = useState(false);
@@ -68,7 +67,7 @@ export default function SurahDetail() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentSurahNumber, setCurrentSurahNumber] = useState<number | null>(null);
 
-  // --- refs for playback logic ---
+  // refs for playback
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ayahsToPlay = useRef<Ayah[]>([]);
   const currentAyahIndex = useRef(0);
@@ -84,7 +83,7 @@ export default function SurahDetail() {
     "ar.saoodshuraym": "https://verses.quran.com/Shuraym/mp3",
   };
 
-  // --- load bookmarks & surah list ---
+  // load bookmarks & surah list
   useEffect(() => {
     const saved = localStorage.getItem("bookmarks");
     if (saved) {
@@ -99,13 +98,13 @@ export default function SurahDetail() {
     });
   }, []);
 
-  // --- track route param ---
+  // track route param
   useEffect(() => {
     if (!id) return;
     setCurrentSurahNumber(parseInt(id, 10));
   }, [id]);
 
-  // --- fetch surah data ---
+  // fetch surah data
   useEffect(() => {
     if (!currentSurahNumber) return;
     const load = async () => {
@@ -116,20 +115,15 @@ export default function SurahDetail() {
             currentSurahNumber.toString(),
             translation
           ),
-          fetchSurahByIdWithTranslation(
-            currentSurahNumber.toString(),
-            "ar"
-          ),
+          fetchSurahByIdWithTranslation(currentSurahNumber.toString(), "ar"),
           fetchSurahAudio(currentSurahNumber.toString(), reciter),
         ]);
-
         const merged = arabic.ayahs.map((ayah: Ayah, i: number) => ({
           number: i + 1,
           text: ayah.text,
           englishText: trans.ayahs[i]?.text,
           audio: audio[i]?.audio,
         }));
-
         setSurah({
           name: arabic.name,
           englishName: arabic.englishName,
@@ -164,7 +158,7 @@ export default function SurahDetail() {
     []
   );
 
-  // --- Bookmark helpers ---
+  // bookmark helpers
   const toggleBookmark = (ayahNum: number) => {
     const sid = parseInt(id || "1", 10) * 1000 + ayahNum;
     const updated = bookmarks.includes(sid)
@@ -176,7 +170,7 @@ export default function SurahDetail() {
   const isAyahBookmarked = (n: number) =>
     bookmarks.includes(parseInt(id || "1", 10) * 1000 + n);
 
-  // --- Bismillah logic ---
+  // Bismillah logic
   const shouldPlayBismillah = () =>
     currentAyahIndex.current === 0 &&
     startAyah === 1 &&
@@ -194,7 +188,7 @@ export default function SurahDetail() {
       b.onended = () => resolve();
     });
 
-  // --- stop everything ---
+  // stop everything
   const stopPlayback = () => {
     audioRef.current?.pause();
     isPlayingAllRef.current = false;
@@ -206,10 +200,11 @@ export default function SurahDetail() {
     selectionRepeatCounterRef.current = 0;
   };
 
-  // --- core “play next” (handles both modes) ---
-  const playNextAyah = () => {
+  // core “play next” (async to await Bismillah safely)
+  const playNextAyah = async () => {
     if (!ayahsToPlay.current.length) {
-      return stopPlayback();
+      stopPlayback();
+      return;
     }
 
     const localIdx = currentAyahIndex.current;
@@ -219,7 +214,6 @@ export default function SurahDetail() {
     setPlayingIndex(globalIdx);
     setCurrentPlayingAyah(ayah.number);
 
-    // drop old audio
     audioRef.current?.pause();
     audioRef.current = null;
 
@@ -230,13 +224,12 @@ export default function SurahDetail() {
       a.play();
       a.onended = () => {
         if (repeatEach) {
-          // --- per-verse repeat logic ---
+          // per-verse repeat
           if (verseRepeatCounterRef.current < repeatCount - 1) {
             verseRepeatCounterRef.current++;
             setCurrentRepeat(verseRepeatCounterRef.current + 1);
             a.play();
           } else {
-            // move to next verse
             verseRepeatCounterRef.current = 0;
             setCurrentRepeat(1);
             currentAyahIndex.current++;
@@ -247,12 +240,11 @@ export default function SurahDetail() {
             }
           }
         } else {
-          // --- entire-selection repeat logic ---
+          // entire-selection repeat
           currentAyahIndex.current++;
           if (currentAyahIndex.current < ayahsToPlay.current.length) {
             playNextAyah();
           } else {
-            // finished one pass
             selectionRepeatCounterRef.current++;
             if (selectionRepeatCounterRef.current < repeatCount) {
               setCurrentRepeat(selectionRepeatCounterRef.current + 1);
@@ -267,19 +259,22 @@ export default function SurahDetail() {
     };
 
     if (shouldPlayBismillah()) {
-      playBismillah().then(kickOff);
-    } else {
-      kickOff();
+      try {
+        await playBismillah();
+      } catch {
+        // skip if missing
+      }
     }
+    kickOff();
   };
 
-  // --- Play All entrypoint ---
+  // Play All entry
   const playAll = () => {
     if (!surah) return;
     if (isPlayingAllRef.current) {
-      return stopPlayback();
+      stopPlayback();
+      return;
     }
-    // prepare the slice
     ayahsToPlay.current = surah.ayahs.slice(
       startAyah - 1,
       endAyah ?? surah.ayahs.length
@@ -293,10 +288,9 @@ export default function SurahDetail() {
     playNextAyah();
   };
 
-  // --- single-ayah play/pause ---
+  // single-ayah play/pause
   const playAyah = async (ayah: Ayah, idx: number) => {
     if (playingIndex === idx && audioRef.current) {
-      // toggle pause/play
       if (audioRef.current.paused) {
         await audioRef.current.play();
       } else {
@@ -320,7 +314,7 @@ export default function SurahDetail() {
     };
   };
 
-  // --- nav helpers ---
+  // navigation
   const playNext = () => {
     if (isPlayingAllRef.current) return;
     if (
@@ -359,7 +353,7 @@ export default function SurahDetail() {
     navigateToSurah(prev);
   };
 
-  // --- UI handlers ---
+  // UI handlers
   const toggleMute = () => setIsMuted((m) => !m);
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = parseFloat(e.target.value);
@@ -382,23 +376,14 @@ export default function SurahDetail() {
   };
 
   if (loading)
-    return (
-      <p className="text-center mt-10 text-gray-600 dark:text-gray-300">
-        Loading Surah...
-      </p>
-    );
+    return <p className="text-center mt-10">Loading Surah...</p>;
   if (!surah)
-    return (
-      <p className="text-center mt-10 text-red-600 dark:text-red-400">
-        Surah not found.
-      </p>
-    );
+    return <p className="text-center mt-10 text-red-600">Surah not found.</p>;
 
   return (
     <div className="p-4 max-w-4xl mx-auto dark:bg-gray-900 pb-24 min-h-[calc(100vh-80px)]">
       {/* Header */}
       <div className="mb-6">
-        {/* Surah dropdown & translation toggle */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -476,7 +461,6 @@ export default function SurahDetail() {
           </div>
         </div>
 
-        {/* Translation & reciter selects */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <select
             value={translation}
@@ -502,7 +486,6 @@ export default function SurahDetail() {
           </select>
         </div>
 
-        {/* Play-All controls */}
         <div className="flex items-center gap-3 mb-4 text-sm">
           <label className="text-gray-700 dark:text-gray-300">
             From:
@@ -585,7 +568,6 @@ export default function SurahDetail() {
         </div>
       </div>
 
-      {/* Bismillah */}
       {surah && ![1, 9].includes(surah.number) && (
         <div className="w-full flex justify-center my-6">
           <p className="font-arabic text-3xl text-center text-gray-800 dark:text-gray-200">
@@ -594,7 +576,6 @@ export default function SurahDetail() {
         </div>
       )}
 
-      {/* Ayahs */}
       <div className="space-y-5">
         {surah.ayahs.map((ayah, index) => {
           const showArabic =
@@ -656,7 +637,7 @@ export default function SurahDetail() {
                     <FaPause size={14} />
                   ) : (
                     <FaPlay size={14} className="ml-1" />
-                  )}
+                  )}  
                 </button>
               </div>
             </div>
@@ -664,11 +645,9 @@ export default function SurahDetail() {
         })}
       </div>
 
-      {/* Footer Player */}
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 shadow-lg z-50 h-[80px] backdrop-blur-sm bg-opacity-90 dark:bg-opacity-90">
         <div className="max-w-4xl mx-auto h-full">
           <div className="flex items-center justify-between gap-4 h-full">
-            {/* Surah nav */}
             <div className="flex items-center gap-2">
               <button
                 onClick={prevSurah}
@@ -676,6 +655,7 @@ export default function SurahDetail() {
                 title="Previous Surah"
               >
                 <FaStepBackward />
+         
               </button>
               <div className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[120px] text-center">
                 {surah.englishName} ({surah.name})
@@ -688,7 +668,7 @@ export default function SurahDetail() {
                 <FaStepForward />
               </button>
             </div>
-            {/* Ayah nav/play */}
+
             <div className="flex items-center gap-2">
               <button
                 onClick={playPrevious}
@@ -736,14 +716,20 @@ export default function SurahDetail() {
                 <FaStepForward />
               </button>
             </div>
-            {/* Volume */}
+
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleMute}
                 className="p-2 text-gray-700 dark:text-gray-300"
                 title={isMuted ? "Unmute" : "Mute"}
               >
-                {isMuted ? <FaVolumeMute /> : volume > 0.5 ? <FaVolumeUp /> : <FaVolumeDown />}
+                {isMuted ? (
+                  <FaVolumeMute />
+                ) : volume > 0.5 ? (
+                  <FaVolumeUp />
+                ) : (
+                  <FaVolumeDown />
+                )}
               </button>
               <input
                 type="range"
@@ -755,12 +741,13 @@ export default function SurahDetail() {
                 className="w-20 accent-blue-500"
               />
             </div>
-            {/* Status */}
+
             <div className="text-sm text-gray-700 dark:text-gray-300 min-w-[80px] text-right">
-              {currentPlayingAyah ? `Ayah ${currentPlayingAyah}` : "Not Playing"}
+              {currentPlayingAyah
+                ? `Ayah ${currentPlayingAyah}`
+                : "Not Playing"}
             </div>
           </div>
-          {/* Footer repeat indicator */}
           {isPlayingAll && repeatCount > 1 && (
             <div className="text-xs text-center text-gray-500 dark:text-gray-400 mt-1">
               Repeat {currentRepeat} of {repeatCount}
