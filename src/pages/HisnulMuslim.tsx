@@ -20,12 +20,26 @@ export default function HisnulMuslim() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const rawCats = (duaData as any).English;
+    type RawDua = {
+      ID: string | number;
+      ARABIC_TEXT: string;
+      TRANSLATED_TEXT: string;
+      AUDIO?: string | null;
+    };
+    type RawCategory = {
+      TITLE: string;
+      TEXT: RawDua[];
+    };
+    type DuaData = {
+      English: RawCategory[];
+    };
+
+    const rawCats = (duaData as DuaData).English;
     if (Array.isArray(rawCats)) {
-      const mapped: Category[] = rawCats.map((cat: any) => ({
+      const mapped: Category[] = rawCats.map((cat: RawCategory) => ({
         name: cat.TITLE,
         duas: Array.isArray(cat.TEXT)
-          ? cat.TEXT.map((d: any) => ({
+          ? cat.TEXT.map((d: RawDua) => ({
               id: d.ID.toString(),
               arabic: d.ARABIC_TEXT,
               translation: d.TRANSLATED_TEXT,
