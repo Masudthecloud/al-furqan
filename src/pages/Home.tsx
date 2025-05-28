@@ -114,6 +114,33 @@ export default function Home() {
             </p>
           </Link>
 
+          {/* Hisnul Muslim */}
+          <Link
+            to="/hisnul"
+            className="group bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md border border-gray-200 dark:border-gray-700 p-8 transition-all duration-200 hover:border-purple-300 dark:hover:border-purple-700"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 mb-5 text-purple-600 dark:text-purple-400 mx-auto"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-2 text-center">
+              Hisnul Muslim
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+              Daily du'as and adhkār
+            </p>
+          </Link>
+
           {/* Bookmarks */}
           <Link
             to="/bookmarks"
