@@ -17,6 +17,9 @@ import {
   FaVolumeMute,
   FaChevronDown,
   FaSearch,
+  FaBook,
+  FaLanguage,
+  FaMusic,
 } from "react-icons/fa";
 
 interface Ayah {
@@ -44,14 +47,14 @@ export default function SurahDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // state
+  // State
   const [surah, setSurah] = useState<Surah | null>(null);
   const [surahList, setSurahList] = useState<SurahInfo[]>([]);
   const [filteredSurahList, setFilteredSurahList] = useState<SurahInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [translation, setTranslation] = useState("en.sahih");
-  const [reciter, setReciter] = useState("ar.alafasy"); // default reciter
-  const [showTranslation, setShowTranslation] = useState(true);
+  const [reciter, setReciter] = useState("ar.alafasy");
+  const [viewMode, setViewMode] = useState<"reading" | "translation">("reading");
   const [bookmarks, setBookmarks] = useState<number[]>([]);
   const [startAyah, setStartAyah] = useState(1);
   const [endAyah, setEndAyah] = useState<number | null>(null);
@@ -66,8 +69,10 @@ export default function SurahDetail() {
   const [isSurahDropdownOpen, setIsSurahDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentSurahNumber, setCurrentSurahNumber] = useState<number | null>(null);
+  const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
+  const [isHoveringPlayAll, setIsHoveringPlayAll] = useState(false);
 
-  // refs for playback
+  // Refs
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ayahsToPlay = useRef<Ayah[]>([]);
   const currentAyahIndex = useRef(0);
@@ -83,14 +88,16 @@ export default function SurahDetail() {
     "ar.saoodshuraym": "https://verses.quran.com/Shuraym/mp3",
   };
 
-  // load bookmarks & surah list
+  // Load bookmarks & surah list
   useEffect(() => {
     const saved = localStorage.getItem("bookmarks");
     if (saved) {
       try {
         const arr = JSON.parse(saved);
         if (Array.isArray(arr)) setBookmarks(arr);
-      } catch {}
+      } catch (error) {
+        console.error('Failed to parse bookmarks:', error);
+      }
     }
     fetchSurahList().then((list) => {
       setSurahList(list);
@@ -98,13 +105,13 @@ export default function SurahDetail() {
     });
   }, []);
 
-  // track route param
+  // Track route param
   useEffect(() => {
     if (!id) return;
     setCurrentSurahNumber(parseInt(id, 10));
   }, [id]);
 
-  // fetch surah data
+  // Fetch surah data
   useEffect(() => {
     if (!currentSurahNumber) return;
     const load = async () => {
@@ -142,14 +149,14 @@ export default function SurahDetail() {
     load();
   }, [currentSurahNumber, translation, reciter]);
 
-  // sync volume/mute
+  // Sync volume/mute
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = isMuted ? 0 : volume;
     }
   }, [volume, isMuted]);
 
-  // cleanup on unmount
+  // Cleanup on unmount
   useEffect(
     () => () => {
       audioRef.current?.pause();
@@ -158,7 +165,7 @@ export default function SurahDetail() {
     []
   );
 
-  // bookmark helpers
+  // Bookmark helpers
   const toggleBookmark = (ayahNum: number) => {
     const sid = parseInt(id || "1", 10) * 1000 + ayahNum;
     const updated = bookmarks.includes(sid)
@@ -184,13 +191,12 @@ export default function SurahDetail() {
       const b = new Audio(url);
       audioRef.current = b;
       b.volume = isMuted ? 0 : volume;
-      // if the file errors, just resolve and move on
-    b.onerror = () => resolve();
-    b.onended = () => resolve();
-    b.play().catch(() => resolve());
-  });
+      b.onerror = () => resolve();
+      b.onended = () => resolve();
+      b.play().catch(() => resolve());
+    });
 
-  // stop everything
+  // Stop everything
   const stopPlayback = () => {
     audioRef.current?.pause();
     isPlayingAllRef.current = false;
@@ -202,7 +208,7 @@ export default function SurahDetail() {
     selectionRepeatCounterRef.current = 0;
   };
 
-  // core “play next” (async to await Bismillah safely)
+  // Core "play next"
   const playNextAyah = async () => {
     if (!ayahsToPlay.current.length) {
       stopPlayback();
@@ -226,7 +232,6 @@ export default function SurahDetail() {
       a.play();
       a.onended = () => {
         if (repeatEach) {
-          // per-verse repeat
           if (verseRepeatCounterRef.current < repeatCount - 1) {
             verseRepeatCounterRef.current++;
             setCurrentRepeat(verseRepeatCounterRef.current + 1);
@@ -242,7 +247,6 @@ export default function SurahDetail() {
             }
           }
         } else {
-          // entire-selection repeat
           currentAyahIndex.current++;
           if (currentAyahIndex.current < ayahsToPlay.current.length) {
             playNextAyah();
@@ -290,7 +294,7 @@ export default function SurahDetail() {
     playNextAyah();
   };
 
-  // single-ayah play/pause
+  // Single-ayah play/pause
   const playAyah = async (ayah: Ayah, idx: number) => {
     if (playingIndex === idx && audioRef.current) {
       if (audioRef.current.paused) {
@@ -316,7 +320,7 @@ export default function SurahDetail() {
     };
   };
 
-  // navigation
+  // Navigation
   const playNext = () => {
     if (isPlayingAllRef.current) return;
     if (
@@ -378,299 +382,334 @@ export default function SurahDetail() {
   };
 
   if (loading)
-    return <p className="text-center mt-10">Loading Surah...</p>;
+    return <div className="flex justify-center items-center h-screen dark:bg-gray-900"><p className="text-center dark:text-gray-200">Loading Surah...</p></div>;
   if (!surah)
-    return <p className="text-center mt-10 text-red-600">Surah not found.</p>;
+    return <div className="flex justify-center items-center h-screen dark:bg-gray-900"><p className="text-center text-red-600 dark:text-red-400">Surah not found.</p></div>;
 
   return (
-    <div className="p-4 max-w-4xl mx-auto dark:bg-gray-900 pb-24 min-h-[calc(100vh-80px)]">
+    <div className="relative pb-32 min-h-screen dark:bg-gray-900">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <button
-                onClick={() =>
-                  setIsSurahDropdownOpen(!isSurahDropdownOpen)
-                }
-                className="flex items-center gap-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm font-medium"
-              >
-                {surah.englishName} ({surah.name})
-                <FaChevronDown
-                  className={`transition-transform ${
-                    isSurahDropdownOpen ? "transform rotate-180" : ""
-                  }`}
-                  size={12}
-                />
-              </button>
-              {isSurahDropdownOpen && (
-                <div className="absolute z-50 mt-1 w-56 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700">
-                  <div className="sticky top-0 p-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FaSearch className="text-gray-400" />
+      <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 py-3">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <button
+                  onClick={() => setIsSurahDropdownOpen(!isSurahDropdownOpen)}
+                  className="flex items-center gap-2 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm font-medium"
+                >
+                  {surah.englishName} ({surah.name})
+                  <FaChevronDown
+                    className={`transition-transform ${
+                      isSurahDropdownOpen ? "transform rotate-180" : ""
+                    }`}
+                    size={12}
+                  />
+                </button>
+                {isSurahDropdownOpen && (
+                  <div className="absolute z-50 mt-1 w-56 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div className="sticky top-0 p-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FaSearch className="text-gray-400" />
+                        </div>
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={handleSurahSearch}
+                          placeholder="Search surahs..."
+                          className="w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          autoFocus
+                        />
                       </div>
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={handleSurahSearch}
-                        placeholder="Search surahs..."
-                        className="w-full pl-10 pr-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        autoFocus
-                      />
+                    </div>
+                    <div className="py-1">
+                      {filteredSurahList.length > 0 ? (
+                        filteredSurahList.map((s) => (
+                          <button
+                            key={s.number}
+                            onClick={() => {
+                              navigateToSurah(s.number);
+                              setIsSurahDropdownOpen(false);
+                            }}
+                            className={`block w-full text-left px-4 py-2 text-sm ${
+                              s.number === surah.number
+                                ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            {s.number}. {s.englishName} ({s.name})
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                          No surahs found
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="py-1">
-                    {filteredSurahList.length > 0 ? (
-                      filteredSurahList.map((s) => (
-                        <button
-                          key={s.number}
-                          onClick={() => {
-                            navigateToSurah(s.number);
-                            setIsSurahDropdownOpen(false);
-                          }}
-                          className={`block w-full text-left px-4 py-2 text-sm ${
-                            s.number === surah.number
-                              ? "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
-                              : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          }`}
-                        >
-                          {s.number}. {s.englishName} ({s.name})
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
-                        No surahs found
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
-              <input
-                type="checkbox"
-                checked={showTranslation}
-                onChange={() =>
-                  setShowTranslation(!showTranslation)
-                }
-                className="rounded text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-600"
-              />
-              Translation
-            </label>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <select
-            value={translation}
-            onChange={(e) => setTranslation(e.target.value)}
-            className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="en.sahih">Sahih International</option>
-            <option value="en.yusufali">Yusuf Ali</option>
-            <option value="bn.bengali">Bengali</option>
-            <option value="ur.jalandhry">Urdu</option>
-          </select>
-          <select
-            value={reciter}
-            onChange={(e) => setReciter(e.target.value)}
-            className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48"
-          >
-            <option value="ar.alafasy">Mishary Alafasy</option>
-            <option value="ar.minshawi">Al-Minshawi</option>
-            <option value="ar.husary">Mahmoud Al-Hussary</option>
-            <option value="ar.abdulbasitmurattal">Abdul Basit</option>
-            <option value="ar.saoodshuraym">Saood Shuraym</option> 
-          </select>
-        </div>
-
-        <div className="flex items-center gap-3 mb-4 text-sm">
-          <label className="text-gray-700 dark:text-gray-300">
-            From:
-            <input
-              type="number"
-              min="1"
-              max={surah.ayahs.length}
-              value={startAyah}
-              onChange={(e) => {
-                const v = Math.max(
-                  1,
-                  Math.min(surah.ayahs.length, Number(e.target.value))
-                );
-                setStartAyah(v);
-              }}
-              className="ml-1 border border-gray-300 dark:border-gray-600 rounded w-12 px-2 py-1 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </label>
-          <label className="text-gray-700 dark:text-gray-300">
-            To:
-            <input
-              type="number"
-              min="1"
-              max={surah.ayahs.length}
-              value={endAyah ?? ""}
-              onChange={(e) => {
-                const v =
-                  e.target.value === ""
-                    ? null
-                    : Math.max(
-                        1,
-                        Math.min(
-                          surah.ayahs.length,
-                          Number(e.target.value)
-                        )
-                      );
-                setEndAyah(v);
-              }}
-              className="ml-1 border border-gray-300 dark:border-gray-600 rounded w-12 px-2 py-1 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </label>
-          <label className="flex items-center gap-1 text-gray-700 dark:text-gray-300">
-            <input
-              type="checkbox"
-              checked={repeatEach}
-              onChange={() => setRepeatEach(!repeatEach)}
-              className="rounded text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-600"
-            />
-            Repeat Each (verse)
-          </label>
-          <label className="text-gray-700 dark:text-gray-300">
-            Repeat:
-            <select
-              value={repeatCount}
-              onChange={(e) => setRepeatCount(Number(e.target.value))}
-              className="ml-1 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {[1, 2, 3, 4, 5].map((num) => (
-                <option key={num} value={num}>
-                  {num}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            onClick={playAll}
-            className={`px-3 py-1 rounded-md text-sm ${
-              isPlayingAll
-                ? "bg-red-500 hover:bg-red-600 text-white"
-                : "bg-green-500 hover:bg-green-600 text-white"
-            }`}
-          >
-            {isPlayingAll ? "Stop Play All" : "Play All"}
-          </button>
-          {isPlayingAll && repeatCount > 1 && (
-            <span className="text-sm text-gray-600 dark:text-gray-300">
-              (Repeat {currentRepeat} of {repeatCount})
-            </span>
-          )}
-        </div>
-      </div>
-
-      {surah && ![1, 9].includes(surah.number) && (
-        <div className="w-full flex justify-center my-6">
-          <p className="font-arabic text-3xl text-center text-gray-800 dark:text-gray-200">
-            بِسْمِ اللَّهِ الرَّحْمَـٰنِ الرَّحِيمِ
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-5">
-        {surah.ayahs.map((ayah, index) => {
-          const showArabic =
-            index === 0 &&
-            ![1, 9].includes(surah.number)
-              ? ayah.text.replace(
-                  /^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ[\s\u200C]*[,،]?/u,
-                  ""
-                )
-              : ayah.text;
-
-          return (
-            <div
-              key={ayah.number}
-              id={`ayah-${ayah.number}`}
-              className={`p-4 rounded-lg transition-all duration-200 ${
-                index === playingIndex
-                  ? "bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-500"
-                  : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-              }`}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium">
-                  {ayah.number}
-                </div>
-                <button
-                  onClick={() => toggleBookmark(ayah.number)}
-                  className="text-gray-400 hover:text-yellow-500 dark:hover:text-yellow-400"
-                  title="Bookmark"
-                >
-                  {isAyahBookmarked(ayah.number) ? (
-                    <FaStar className="text-yellow-500" />
-                  ) : (
-                    <FaRegStar />
-                  )}
-                </button>
+                )}
               </div>
+            </div>
 
-              <p className="font-arabic text-right text-2xl leading-loose mb-3 text-gray-800 dark:text-gray-200">
-                {showArabic}
-              </p>
-
-              {showTranslation && (
-                <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
-                  {ayah.englishText}
-                </p>
-              )}
-
-              <div className="flex justify-end">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex rounded-md shadow-sm">
                 <button
-                  onClick={() => playAyah(ayah, index)}
-                  className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                    playingIndex === index
+                  onClick={() => setViewMode("reading")}
+                  className={`px-3 py-2 text-sm font-medium rounded-l-md flex items-center gap-2 ${
+                    viewMode === "reading"
                       ? "bg-blue-500 text-white"
                       : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                   }`}
                 >
-                  {playingIndex === index ? (
-                    <FaPause size={14} />
-                  ) : (
-                    <FaPlay size={14} className="ml-1" />
-                  )}  
+                  <FaBook size={12} />
+                  Reading
+                </button>
+                <button
+                  onClick={() => setViewMode("translation")}
+                  className={`px-3 py-2 text-sm font-medium rounded-r-md flex items-center gap-2 ${
+                    viewMode === "translation"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                  }`}
+                >
+                  <FaLanguage size={12} />
+                  Translation
+                </button>
+              </div>
+
+              {viewMode === "translation" && (
+                <select
+                  value={translation}
+                  onChange={(e) => setTranslation(e.target.value)}
+                  className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="en.sahih">Sahih International</option>
+                  <option value="en.yusufali">Yusuf Ali</option>
+                  <option value="bn.bengali">Bengali</option>
+                  <option value="ur.jalandhry">Urdu</option>
+                </select>
+              )}
+
+              <select
+                value={reciter}
+                onChange={(e) => setReciter(e.target.value)}
+                className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48"
+              >
+                <option value="ar.alafasy">Mishary Alafasy</option>
+                <option value="ar.minshawi">Al-Minshawi</option>
+                <option value="ar.husary">Mahmoud Al-Hussary</option>
+                <option value="ar.abdulbasitmurattal">Abdul Basit</option>
+                <option value="ar.saoodshuraym">Saood Shuraym</option>
+              </select>
+
+              {/* Play Audio Button */}
+              <button
+                onClick={playAll}
+                onMouseEnter={() => setIsHoveringPlayAll(true)}
+                onMouseLeave={() => setIsHoveringPlayAll(false)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium ${
+                  isPlayingAll
+                    ? "bg-red-500 hover:bg-red-600 text-white"
+                    : "bg-green-500 hover:bg-green-600 text-white"
+                }`}
+              >
+                {isHoveringPlayAll && isPlayingAll ? "Stop Playback" : "Play Audio"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Surah Content */}
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        {surah && ![1, 9].includes(surah.number) && (
+          <div className="w-full flex justify-center my-6">
+            <p className="font-arabic text-4xl text-center text-gray-800 dark:text-gray-100">
+              بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+            </p>
+          </div>
+        )}
+
+        {viewMode === "reading" ? (
+          /* Quran.com Style Reading View */
+          <div className="space-y-6">
+            {surah.ayahs.map((ayah, index) => {
+              const showArabic =
+                index === 0 && ![1, 9].includes(surah.number)
+                  ? ayah.text.replace(
+                      /^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ[\s\u200C]*[,،]?/u,
+                      ""
+                    )
+                  : ayah.text;
+
+              return (
+                <div
+                  key={ayah.number}
+                  id={`ayah-${ayah.number}`}
+                  className={`p-4 rounded-lg transition-all duration-200 ${
+                    index === playingIndex
+                      ? "bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500"
+                      : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                  }`}
+                >
+                  {/* Ayah number and bookmark */}
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium">
+                        {ayah.number}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleBookmark(ayah.number)}
+                      className="text-gray-400 hover:text-yellow-500 dark:hover:text-yellow-400"
+                      title="Bookmark"
+                    >
+                      {isAyahBookmarked(ayah.number) ? (
+                        <FaStar className="text-yellow-500" />
+                      ) : (
+                        <FaRegStar />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Arabic text */}
+                  <p className="font-arabic text-right text-3xl leading-loose text-gray-800 dark:text-gray-100 mb-2">
+                    {showArabic}
+                  </p>
+
+                  {/* Ayah controls */}
+                  <div className="flex justify-end items-center gap-2">
+                    <button
+                      onClick={() => playAyah(ayah, index)}
+                      className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                        playingIndex === index
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      {playingIndex === index ? (
+                        <FaPause size={12} />
+                      ) : (
+                        <FaPlay size={12} className="ml-1" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* Translation View */
+          <div className="space-y-6">
+            {surah.ayahs.map((ayah, index) => {
+              const showArabic =
+                index === 0 && ![1, 9].includes(surah.number)
+                  ? ayah.text.replace(
+                      /^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ[\s\u200C]*[,،]?/u,
+                      ""
+                    )
+                  : ayah.text;
+
+              return (
+                <div
+                  key={ayah.number}
+                  id={`ayah-${ayah.number}`}
+                  className={`p-5 rounded-lg transition-all duration-200 ${
+                    index === playingIndex
+                      ? "bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500"
+                      : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium">
+                      {ayah.number}
+                    </div>
+                    <button
+                      onClick={() => toggleBookmark(ayah.number)}
+                      className="text-gray-400 hover:text-yellow-500 dark:hover:text-yellow-400"
+                      title="Bookmark"
+                    >
+                      {isAyahBookmarked(ayah.number) ? (
+                        <FaStar className="text-yellow-500" />
+                      ) : (
+                        <FaRegStar />
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="font-arabic text-right text-3xl leading-loose mb-4 text-gray-800 dark:text-gray-100">
+                    {showArabic}
+                  </p>
+
+                  <div className="mb-4">
+                    <div className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-1">
+                      Translation
+                    </div>
+                    <p className="text-gray-700 dark:text-gray-300">
+                      {ayah.englishText}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => playAyah(ayah, index)}
+                      className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                        playingIndex === index
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      {playingIndex === index ? (
+                        <FaPause size={14} />
+                      ) : (
+                        <FaPlay size={14} className="ml-1" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Audio Player */}
+      <div className={`fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-50 transition-all duration-300 ${isPlayerExpanded ? "h-40" : "h-20"}`}>
+        <div className="max-w-5xl mx-auto h-full flex flex-col">
+          <div className="flex items-center justify-between p-4 h-20">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setIsPlayerExpanded(!isPlayerExpanded)}
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                <FaChevronDown
+                  className={`transition-transform ${isPlayerExpanded ? "transform rotate-180" : ""}`}
+                />
+              </button>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={prevSurah}
+                  className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Previous Surah"
+                >
+                  <FaStepBackward />
+                </button>
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[120px]">
+                  {surah.englishName} ({surah.name})
+                </div>
+                <button
+                  onClick={nextSurah}
+                  className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Next Surah"
+                >
+                  <FaStepForward />
                 </button>
               </div>
             </div>
-          );
-        })}
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 shadow-lg z-50 h-[80px] backdrop-blur-sm bg-opacity-90 dark:bg-opacity-90">
-        <div className="max-w-4xl mx-auto h-full">
-          <div className="flex items-center justify-between gap-4 h-full">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={prevSurah}
-                className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-                title="Previous Surah"
-              >
-                <FaStepBackward />
-         
-              </button>
-              <div className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[120px] text-center">
-                {surah.englishName} ({surah.name})
-              </div>
-              <button
-                onClick={nextSurah}
-                className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
-                title="Next Surah"
-              >
-                <FaStepForward />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               <button
                 onClick={playPrevious}
                 disabled={!currentPlayingAyah}
@@ -694,13 +733,6 @@ export default function SurahDetail() {
                   }
                 }}
                 className="p-3 rounded-full bg-blue-500 text-white hover:bg-blue-600"
-                title={
-                  isPlayingAll
-                    ? "Pause"
-                    : playingIndex !== null
-                    ? "Resume"
-                    : "Play All"
-                }
               >
                 {isPlayingAll || playingIndex !== null ? (
                   <FaPause />
@@ -742,16 +774,106 @@ export default function SurahDetail() {
                 className="w-20 accent-blue-500"
               />
             </div>
-
-            <div className="text-sm text-gray-700 dark:text-gray-300 min-w-[80px] text-right">
-              {currentPlayingAyah
-                ? `Ayah ${currentPlayingAyah}`
-                : "Not Playing"}
-            </div>
           </div>
-          {isPlayingAll && repeatCount > 1 && (
-            <div className="text-xs text-center text-gray-500 dark:text-gray-400 mt-1">
-              Repeat {currentRepeat} of {repeatCount}
+
+          {isPlayerExpanded && (
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-1">
+              <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+                <div className="text-sm text-gray-700 dark:text-gray-300">
+                  {currentPlayingAyah
+                    ? `Now Playing: Ayah ${currentPlayingAyah}`
+                    : "Select verses to play"}
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                      From:
+                      <input
+                        type="number"
+                        min="1"
+                        max={surah.ayahs.length}
+                        value={startAyah}
+                        onChange={(e) => {
+                          const v = Math.max(
+                            1,
+                            Math.min(surah.ayahs.length, Number(e.target.value))
+                          );
+                          setStartAyah(v);
+                        }}
+                        className="ml-1 border border-gray-300 dark:border-gray-600 rounded w-12 px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </label>
+                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                      To:
+                      <input
+                        type="number"
+                        min="1"
+                        max={surah.ayahs.length}
+                        value={endAyah ?? ""}
+                        onChange={(e) => {
+                          const v =
+                            e.target.value === ""
+                              ? null
+                              : Math.max(
+                                  1,
+                                  Math.min(
+                                    surah.ayahs.length,
+                                    Number(e.target.value)
+                                  )
+                                );
+                          setEndAyah(v);
+                        }}
+                        className="ml-1 border border-gray-300 dark:border-gray-600 rounded w-12 px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={repeatEach}
+                        onChange={() => setRepeatEach(!repeatEach)}
+                        className="rounded text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-600"
+                      />
+                      Repeat Each
+                    </label>
+                    <label className="text-sm text-gray-700 dark:text-gray-300">
+                      Times:
+                      <select
+                        value={repeatCount}
+                        onChange={(e) => setRepeatCount(Number(e.target.value))}
+                        className="ml-1 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {[1, 2, 3, 4, 5].map((num) => (
+                          <option key={num} value={num}>
+                            {num}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <button
+                    onClick={playAll}
+                    className={`px-3 py-1 rounded-md text-sm flex items-center gap-2 ${
+                      isPlayingAll
+                        ? "bg-red-500 hover:bg-red-600 text-white"
+                        : "bg-green-500 hover:bg-green-600 text-white"
+                    }`}
+                  >
+                    <FaPlay size={12} />
+                    {isPlayingAll ? "Stop Playback" : "Play Selection"}
+                  </button>
+                </div>
+              </div>
+
+              {isPlayingAll && repeatCount > 1 && (
+                <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  Repeat {currentRepeat} of {repeatCount}
+                </div>
+              )}
             </div>
           )}
         </div>
