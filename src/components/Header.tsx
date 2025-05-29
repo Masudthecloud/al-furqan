@@ -30,12 +30,12 @@ export default function Header() {
             >
               Prayer Times
             </Link>
-            <Link 
+            {/* <Link 
               to="/qibla" 
               className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-colors font-medium"
             >
               Qibla
-            </Link>
+            </Link> */}
             <Link 
               to="/hisnul" 
               className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-colors font-medium"

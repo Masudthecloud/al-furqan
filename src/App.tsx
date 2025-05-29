@@ -3,7 +3,7 @@ import Header from "./components/Header";
 import Home from "./pages/Home";
 import Quran from "./pages/Quran";
 import Prayer from "./pages/Prayer";
-import Qibla from "./pages/Qibla";
+// import Qibla from "./pages/Qibla";
 import HisnulMuslim from "./pages/HisnulMuslim";
 import SurahDetail from "./pages/SurahDetail";
 import Bookmarks from "./pages/Bookmarks";
@@ -19,7 +19,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/quran" element={<Quran />} />
             <Route path="/prayer" element={<Prayer />} />
-            <Route path="/qibla" element={<Qibla />} />
+            {/* <Route path="/qibla" element={<Qibla />} /> */}
             <Route path="/hisnul" element={<HisnulMuslim />} />
             <Route path="/bookmarks" element={<Bookmarks />} />
             <Route path="/quran/:id" element={<SurahDetail />} />
