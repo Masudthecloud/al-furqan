@@ -19,6 +19,9 @@ import {
   FaSearch,
   FaBook,
   FaLanguage,
+  FaCopy,
+  FaShare,
+  FaCheck,
 } from "react-icons/fa";
 
 interface Ayah {
@@ -70,6 +73,7 @@ export default function SurahDetail() {
   const [currentSurahNumber, setCurrentSurahNumber] = useState<number | null>(null);
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
   const [isHoveringPlayAll, setIsHoveringPlayAll] = useState(false);
+  const [copiedAyah, setCopiedAyah] = useState<number | null>(null);
 
   // Refs
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -380,6 +384,34 @@ export default function SurahDetail() {
     );
   };
 
+  const copyAyah = async (ayah: Ayah) => {
+    const text = viewMode === "translation" 
+      ? `${ayah.text}\n\n${ayah.englishText}\n\n${surah?.englishName} ${ayah.number}`
+      : `${ayah.text}\n\n${surah?.englishName} ${ayah.number}`;
+    await navigator.clipboard.writeText(text);
+    setCopiedAyah(ayah.number);
+    setTimeout(() => setCopiedAyah(null), 2000);
+  };
+
+  const shareAyah = async (ayah: Ayah) => {
+    const text = viewMode === "translation"
+      ? `${ayah.text}\n\n${ayah.englishText}\n\n${surah?.englishName} ${ayah.number}`
+      : `${ayah.text}\n\n${surah?.englishName} ${ayah.number}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${surah?.englishName} ${ayah.number}`,
+          text: text,
+        });
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      await copyAyah(ayah);
+    }
+  };
+
   if (loading)
     return <div className="flex justify-center items-center h-screen dark:bg-gray-900"><p className="text-center dark:text-gray-200">Loading Surah...</p></div>;
   if (!surah)
@@ -546,7 +578,7 @@ export default function SurahDetail() {
                 <div
                   key={ayah.number}
                   id={`ayah-${ayah.number}`}
-                  className={`p-4 rounded-lg transition-all duration-200 ${
+                  className={`p-4 rounded-lg transition-all duration-200 group ${
                     index === playingIndex
                       ? "bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500"
                       : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
@@ -579,6 +611,26 @@ export default function SurahDetail() {
 
                   {/* Ayah controls */}
                   <div className="flex justify-end items-center gap-2">
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => copyAyah(ayah)}
+                        className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                        title="Copy verse"
+                      >
+                        {copiedAyah === ayah.number ? (
+                          <FaCheck className="text-green-500" />
+                        ) : (
+                          <FaCopy />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => shareAyah(ayah)}
+                        className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                        title="Share verse"
+                      >
+                        <FaShare />
+                      </button>
+                    </div>
                     <button
                       onClick={() => playAyah(ayah, index)}
                       className={`flex items-center justify-center w-8 h-8 rounded-full ${
@@ -614,7 +666,7 @@ export default function SurahDetail() {
                 <div
                   key={ayah.number}
                   id={`ayah-${ayah.number}`}
-                  className={`p-5 rounded-lg transition-all duration-200 ${
+                  className={`p-5 rounded-lg transition-all duration-200 group ${
                     index === playingIndex
                       ? "bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500"
                       : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
@@ -650,7 +702,27 @@ export default function SurahDetail() {
                     </p>
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-end items-center gap-2">
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => copyAyah(ayah)}
+                        className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                        title="Copy verse"
+                      >
+                        {copiedAyah === ayah.number ? (
+                          <FaCheck className="text-green-500" />
+                        ) : (
+                          <FaCopy />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => shareAyah(ayah)}
+                        className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                        title="Share verse"
+                      >
+                        <FaShare />
+                      </button>
+                    </div>
                     <button
                       onClick={() => playAyah(ayah, index)}
                       className={`flex items-center justify-center w-10 h-10 rounded-full ${
