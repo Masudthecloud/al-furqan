@@ -8,6 +8,7 @@ import HisnulMuslim from "./pages/HisnulMuslim";
 import SurahDetail from "./pages/SurahDetail";
 import Bookmarks from "./pages/Bookmarks";
 import Footer from "./components/Footer";
+import NotFound from "./pages/NotFound";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="/bookmarks" element={<Bookmarks />} />
             <Route path="/quran/:id" element={<SurahDetail />} />
             <Route path="/surah/:id" element={<SurahDetail />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
         <Footer />

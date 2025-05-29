@@ -74,6 +74,7 @@ export default function SurahDetail() {
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
   const [isHoveringPlayAll, setIsHoveringPlayAll] = useState(false);
   const [copiedAyah, setCopiedAyah] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Refs
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -119,6 +120,7 @@ export default function SurahDetail() {
     if (!currentSurahNumber) return;
     const load = async () => {
       setLoading(true);
+      setError(null);
       try {
         const [trans, arabic, audio] = await Promise.all([
           fetchSurahByIdWithTranslation(
@@ -145,6 +147,7 @@ export default function SurahDetail() {
       } catch (e) {
         console.error(e);
         setSurah(null);
+        setError("Failed to load surah. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -427,8 +430,30 @@ export default function SurahDetail() {
 
   if (loading)
     return <div className="flex justify-center items-center h-screen dark:bg-gray-900"><p className="text-center dark:text-gray-200">Loading Surah...</p></div>;
+  if (error)
+    return (
+      <div className="flex flex-col justify-center items-center h-screen dark:bg-gray-900">
+        <p className="text-center text-red-600 dark:text-red-400 mb-4">{error}</p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Return to Home
+        </button>
+      </div>
+    );
   if (!surah)
-    return <div className="flex justify-center items-center h-screen dark:bg-gray-900"><p className="text-center text-red-600 dark:text-red-400">Surah not found.</p></div>;
+    return (
+      <div className="flex flex-col justify-center items-center h-screen dark:bg-gray-900">
+        <p className="text-center text-red-600 dark:text-red-400 mb-4">Surah not found.</p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Return to Home
+        </button>
+      </div>
+    );
 
   return (
     <div className="relative pb-32 min-h-screen dark:bg-gray-900">
