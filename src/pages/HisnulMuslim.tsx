@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   // add more as needed
 } from "lucide-react";
+import { FaCopy, FaShare, FaCheck } from "react-icons/fa";
 // JSON from https://raw.githubusercontent.com/wafaaelmaandy/Hisn-Muslim-Json/master/husn_en.json
 import duaData from "../data/hisnulMuslim.json";
 
@@ -190,6 +191,7 @@ export default function HisnulMuslim() {
     }
     return new Set();
   });
+  const [copiedDua, setCopiedDua] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem('hisnulMuslimFavorites', JSON.stringify(Array.from(favorites)));
@@ -266,6 +268,30 @@ export default function HisnulMuslim() {
   // Get favorite duas (unordered)
   const favoriteDuas = allDuas.filter(dua => favorites.has(dua.id));
 
+  const copyDua = async (dua: Dua) => {
+    const text = `${dua.arabic}\n\n${dua.translation}`;
+    await navigator.clipboard.writeText(text);
+    setCopiedDua(dua.id);
+    setTimeout(() => setCopiedDua(null), 2000);
+  };
+
+  const shareDua = async (dua: Dua) => {
+    const text = `${dua.arabic}\n\n${dua.translation}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Hisnul Muslim Dua',
+          text: text,
+        });
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      await copyDua(dua);
+    }
+  };
+
   return (
     <div className="relative min-h-[calc(100vh-80px)] flex flex-col bg-gradient-to-b from-yellow-50 to-green-50 dark:from-gray-900 dark:to-gray-800">
       {/* Top bar and quote */}
@@ -301,7 +327,7 @@ export default function HisnulMuslim() {
                   className="mb-4 flex items-center gap-2 text-green-700 dark:text-green-300 hover:underline"
                   onClick={() => setSelectedGroup(null)}
                 >
-                  <ChevronLeft className="w-5 h-5" /> Back to Groups
+                  <ChevronLeft className="w-5 h-5" /> All Categories
                 </button>
                 <h2 className="text-2xl font-bold mb-4 text-green-700 dark:text-green-300 flex items-center gap-2">
                   {GROUP_ICONS[selectedGroup as keyof typeof GROUP_ICONS]} {selectedGroup}
@@ -339,13 +365,34 @@ export default function HisnulMuslim() {
                                   className="relative p-6 bg-white/80 dark:bg-gray-900/80 rounded-xl shadow border border-gray-100 dark:border-gray-800 hover:shadow-lg transition-all duration-200 group"
                                 >
                                   <div className="absolute left-0 top-4 bottom-4 w-1 bg-gradient-to-b from-green-400 via-teal-400 to-purple-400 rounded-full opacity-30 group-hover:opacity-60 transition-opacity" />
-                                  <button
-                                    className="absolute top-3 right-3 z-10"
-                                    onClick={() => toggleFavorite(dua.id)}
-                                    title={favorites.has(dua.id) ? "Remove from favorites" : "Add to favorites"}
-                                  >
-                                    <Star className={`w-6 h-6 ${favorites.has(dua.id) ? "text-yellow-400 fill-yellow-300" : "text-gray-400"}`} fill={favorites.has(dua.id) ? "#fde047" : "none"} />
-                                  </button>
+                                  <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button
+                                        onClick={() => copyDua(dua)}
+                                        className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                                        title="Copy dua"
+                                      >
+                                        {copiedDua === dua.id ? (
+                                          <FaCheck className="text-green-500" />
+                                        ) : (
+                                          <FaCopy />
+                                        )}
+                                      </button>
+                                      <button
+                                        onClick={() => shareDua(dua)}
+                                        className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                                        title="Share dua"
+                                      >
+                                        <FaShare />
+                                      </button>
+                                    </div>
+                                    <button
+                                      onClick={() => toggleFavorite(dua.id)}
+                                      title={favorites.has(dua.id) ? "Remove from favorites" : "Add to favorites"}
+                                    >
+                                      <Star className={`w-6 h-6 ${favorites.has(dua.id) ? "text-yellow-400 fill-yellow-300" : "text-gray-400"}`} fill={favorites.has(dua.id) ? "#fde047" : "none"} />
+                                    </button>
+                                  </div>
                                   <p className="font-arabic text-2xl mb-3 leading-relaxed text-gray-900 dark:text-gray-100">
                                     {dua.arabic}
                                   </p>
@@ -405,14 +452,35 @@ export default function HisnulMuslim() {
                             key={dua.id}
                             className="relative p-6 bg-white/80 dark:bg-gray-900/80 rounded-xl shadow border border-gray-100 dark:border-gray-800 hover:shadow-lg transition-all duration-200 group"
                           >
-                            <button
-                              className="absolute top-3 right-3 z-10"
-                              onClick={() => toggleFavorite(dua.id)}
-                              title={favorites.has(dua.id) ? "Remove from favorites" : "Add to favorites"}
-                            >
-                              <Star className={`w-6 h-6 ${favorites.has(dua.id) ? "text-yellow-400 fill-yellow-300" : "text-gray-400"}`} fill={favorites.has(dua.id) ? "#fde047" : "none"} />
-                            </button>
                             <div className="absolute left-0 top-4 bottom-4 w-1 bg-gradient-to-b from-green-400 via-teal-400 to-purple-400 rounded-full opacity-30 group-hover:opacity-60 transition-opacity" />
+                            <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => copyDua(dua)}
+                                  className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                                  title="Copy dua"
+                                >
+                                  {copiedDua === dua.id ? (
+                                    <FaCheck className="text-green-500" />
+                                  ) : (
+                                    <FaCopy />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => shareDua(dua)}
+                                  className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                                  title="Share dua"
+                                >
+                                  <FaShare />
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => toggleFavorite(dua.id)}
+                                title={favorites.has(dua.id) ? "Remove from favorites" : "Add to favorites"}
+                              >
+                                <Star className={`w-6 h-6 ${favorites.has(dua.id) ? "text-yellow-400 fill-yellow-300" : "text-gray-400"}`} fill={favorites.has(dua.id) ? "#fde047" : "none"} />
+                              </button>
+                            </div>
                             <p className="font-arabic text-2xl mb-3 leading-relaxed text-gray-900 dark:text-gray-100">
                               {dua.arabic}
                             </p>
@@ -450,14 +518,35 @@ export default function HisnulMuslim() {
                     key={dua.id}
                     className="relative p-6 bg-white/80 dark:bg-gray-900/80 rounded-xl shadow border border-gray-100 dark:border-gray-800 hover:shadow-lg transition-all duration-200 group"
                   >
-                    <button
-                      className="absolute top-3 right-3 z-10"
-                      onClick={() => toggleFavorite(dua.id)}
-                      title={favorites.has(dua.id) ? "Remove from favorites" : "Add to favorites"}
-                    >
-                      <Star className={`w-6 h-6 ${favorites.has(dua.id) ? "text-yellow-400 fill-yellow-300" : "text-gray-400"}`} fill={favorites.has(dua.id) ? "#fde047" : "none"} />
-                    </button>
                     <div className="absolute left-0 top-4 bottom-4 w-1 bg-gradient-to-b from-green-400 via-teal-400 to-purple-400 rounded-full opacity-30 group-hover:opacity-60 transition-opacity" />
+                    <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => copyDua(dua)}
+                          className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                          title="Copy dua"
+                        >
+                          {copiedDua === dua.id ? (
+                            <FaCheck className="text-green-500" />
+                          ) : (
+                            <FaCopy />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => shareDua(dua)}
+                          className="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                          title="Share dua"
+                        >
+                          <FaShare />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => toggleFavorite(dua.id)}
+                        title={favorites.has(dua.id) ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        <Star className={`w-6 h-6 ${favorites.has(dua.id) ? "text-yellow-400 fill-yellow-300" : "text-gray-400"}`} fill={favorites.has(dua.id) ? "#fde047" : "none"} />
+                      </button>
+                    </div>
                     <p className="font-arabic text-2xl mb-3 leading-relaxed text-gray-900 dark:text-gray-100">
                       {dua.arabic}
                     </p>

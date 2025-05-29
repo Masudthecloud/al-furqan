@@ -211,7 +211,18 @@ export default function SurahDetail() {
     selectionRepeatCounterRef.current = 0;
   };
 
-  // Core "play next"
+  // Add this new function in the component
+  const scrollToAyah = (ayahNumber: number) => {
+    const element = document.getElementById(`ayah-${ayahNumber}`);
+    if (element) {
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  };
+
+  // Update the playNextAyah function to include scrolling
   const playNextAyah = async () => {
     if (!ayahsToPlay.current.length) {
       stopPlayback();
@@ -224,6 +235,7 @@ export default function SurahDetail() {
 
     setPlayingIndex(globalIdx);
     setCurrentPlayingAyah(ayah.number);
+    scrollToAyah(ayah.number);
 
     audioRef.current?.pause();
     audioRef.current = null;
@@ -297,7 +309,7 @@ export default function SurahDetail() {
     playNextAyah();
   };
 
-  // Single-ayah play/pause
+  // Update the playAyah function to include scrolling
   const playAyah = async (ayah: Ayah, idx: number) => {
     if (playingIndex === idx && audioRef.current) {
       if (audioRef.current.paused) {
@@ -310,6 +322,7 @@ export default function SurahDetail() {
     audioRef.current?.pause();
     setPlayingIndex(idx);
     setCurrentPlayingAyah(ayah.number);
+    scrollToAyah(ayah.number);
     isPlayingAllRef.current = false;
     setIsPlayingAll(false);
 
