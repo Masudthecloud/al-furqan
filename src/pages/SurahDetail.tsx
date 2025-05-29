@@ -19,7 +19,6 @@ import {
   FaSearch,
   FaBook,
   FaLanguage,
-  FaMusic,
 } from "react-icons/fa";
 
 interface Ayah {
