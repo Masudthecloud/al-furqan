@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { MapPin } from "lucide-react";
+// import { MapPin } from "lucide-react"; #UNCOMMENT THIS TO ACTIVATE QIBLA
 
 export default function Home() {
   // Base64 SVG pattern for subtle background
@@ -101,7 +101,7 @@ export default function Home() {
           </Link>
 
           {/* Qibla */}
-          <Link
+          {/* <Link
             to="/qibla"
             className="group bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md border border-gray-200 dark:border-gray-700 p-8 transition-all duration-200 hover:border-pink-300 dark:hover:border-pink-700"
           >
@@ -112,7 +112,7 @@ export default function Home() {
             <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
               Find Qibla direction
             </p>
-          </Link>
+          </Link> */}
 
           {/* Hisnul Muslim */}
           <Link
