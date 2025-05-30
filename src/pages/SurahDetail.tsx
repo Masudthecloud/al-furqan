@@ -90,6 +90,17 @@ export default function SurahDetail() {
     "ar.husary": "https://verses.quran.com/Husary/mp3",
     "ar.abdulbasitmurattal": "https://verses.quran.com/AbdulBasetMurattal/mp3",
     "ar.saoodshuraym": "https://verses.quran.com/Shuraym/mp3",
+    "ar.sudais": "https://verses.quran.com/Sudais/mp3",
+      // newly added reciters:
+    "ar.abdullahbasfar":     "https://verses.quran.com/Basfar/mp3",
+    "ar.abdulsamad":         "https://verses.quran.com/AbdulSamad/mp3",
+    "ar.shaatree":           "https://verses.quran.com/Shaatree/mp3",
+    "ar.ahmedajamy":         "https://verses.quran.com/AhmedIbnAliAlAjami/mp3",
+    "ar.hanirifai":          "https://verses.quran.com/HaniRifai/mp3",
+    "ar.ibrahimakhbar":      "https://verses.quran.com/IbrahimAkhdar/mp3",
+    "ar.mahermuaiqly":       "https://verses.quran.com/MaherAlMuaiqly/mp3",
+    "ar.muhammadayyoub":     "https://verses.quran.com/MuhammadAyyoub/mp3",
+    "ar.muhammadjibreel":    "https://verses.quran.com/MuhammadJibreel/mp3",
   };
 
   // Load bookmarks & surah list
@@ -189,7 +200,7 @@ export default function SurahDetail() {
     startAyah === 1 &&
     surah &&
     ![1, 9].includes(surah.number) &&
-    !!reciterBaseUrls[reciter];
+    reciter === "ar.alafasy";
 
   const playBismillah = () =>
     new Promise<void>((resolve) => {
@@ -197,7 +208,10 @@ export default function SurahDetail() {
       const b = new Audio(url);
       audioRef.current = b;
       b.volume = isMuted ? 0 : volume;
-      b.onerror = () => resolve();
+      b.onerror = () => {
+        console.log(`Bismillah not available for ${reciter}`);
+        resolve();
+      };
       b.onended = () => resolve();
       b.play().catch(() => resolve());
     });
@@ -570,6 +584,17 @@ export default function SurahDetail() {
                 <option value="ar.husary">Mahmoud Al-Hussary</option>
                 <option value="ar.abdulbasitmurattal">Abdul Basit</option>
                 <option value="ar.saoodshuraym">Saood Shuraym</option>
+                <option value="ar.sudais">Abdul Rahman as-Sudâis</option>
+                  {/* Newly added reciters */}
+              <option value="ar.abdullahbasfar">Abdullah Basfar</option>
+              <option value="ar.abdulsamad">Abdul Samad</option>
+              <option value="ar.shaatree">Abu Bakr Ash-Shaatree</option>
+              <option value="ar.ahmedajamy">Ahmed ibn Ali al-Ajamy</option>
+              <option value="ar.hanirifai">Hani Rifai</option>
+              <option value="ar.ibrahimakhbar">Ibrahim Akhdar</option>
+              <option value="ar.mahermuaiqly">Maher al-Muaiqly</option>
+              <option value="ar.muhammadayyoub">Muhammad Ayyoub</option>
+              <option value="ar.muhammadjibreel">Muhammad Jibreel</option>
               </select>
 
               {/* Play Audio Button */}
