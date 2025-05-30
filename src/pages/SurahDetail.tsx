@@ -567,10 +567,21 @@ export default function SurahDetail() {
                   onChange={(e) => setTranslation(e.target.value)}
                   className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="en.sahih">Sahih International</option>
-                  <option value="en.yusufali">Yusuf Ali</option>
+                  <option value="en.sahih">English</option>
                   <option value="bn.bengali">Bengali</option>
                   <option value="ur.jalandhry">Urdu</option>
+                  <option value="fr.hamidullah">French (Hamidullah)</option>
+                  <option value="de.aburida">German (Abu Rida)</option>
+                  <option value="tr.diyanet">Turkish (Diyanet)</option>
+                  <option value="id.muntakhab">Indonesian</option>
+                  <option value="ms.basmeih">Malay</option>
+                  <option value="hi.hindi">Hindi</option>
+                  <option value="ta.tamil">Tamil</option>
+                  <option value="ru.kuliev">Russian (Kuliev)</option>
+                  <option value="zh.jian">Chinese (Jian)</option>
+                  <option value="es.cortes">Spanish (Cortes)</option>
+                  <option value="pt.elhayek">Portuguese (El-Hayek)</option>
+                  <option value="fa.ghomshei">Persian (Ghomshei)</option>
                 </select>
               )}
 
