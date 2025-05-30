@@ -1,18 +1,12 @@
 {
   "rewrites": [
     {
+      "source": "/surah/:surahId",
+      "destination": "/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "routes": [
-    {
-      "src": "/surah/(.*)",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
   ]
-} 
+}
