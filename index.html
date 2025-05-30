@@ -1,59 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Al-Furqan | The Noble Quran</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#1a365d" />
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Title & Description -->
+    <title>Al-Furqan | The Noble Quran</title>
     <meta name="description" content="Your spiritual companion for Quran, Prayer, and Reflection." />
+
+    <!-- PWA Manifest & Theme Color -->
     <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/icons/manifest-icon-192.maskable.png" />
+    <meta name="theme-color" content="#1a365d" />
+
+    <!-- iOS Home‐Screen Icon & PWA Settings -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Al-Furqan" />
 
-    <!-- Open Graph / Social Media Meta Tags -->
-    <meta property="og:title" content="Al-Furqan | The Noble Quran" />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:url"         content="https://al-furqan.app" />
+    <meta property="og:title"       content="Al-Furqan | The Noble Quran" />
     <meta property="og:description" content="Your spiritual companion for Quran, Prayer, and Reflection." />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://al-furqan.app" />
-    
-    <!-- Image Meta Tags -->
-    <meta property="og:image" content="https://al-furqan.app/al-furqan-final-preview.png" />
+    <meta property="og:image"       content="https://al-furqan.app/al-furqan-final-preview.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:type"  content="image/png" />
 
-    <!-- Twitter Card Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Al-Furqan | The Noble Quran" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:url"         content="https://al-furqan.app" />
+    <meta name="twitter:title"       content="Al-Furqan | The Noble Quran" />
     <meta name="twitter:description" content="Your spiritual companion for Quran, Prayer, and Reflection." />
-    <meta name="twitter:image" content="https://al-furqan.app/al-furqan-final-preview.png" />
-
-    <!-- ... rest of your meta tags ... -->
-    <link
-      rel="apple-touch-icon"
-      sizes="180x180"
-      href="/apple-touch-icon.png"
-    />
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="twitter:image"       content="https://al-furqan.app/al-furqan-final-preview.png" />
   </head>
+
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => {
-              console.log('ServiceWorker registration successful');
-            })
-            .catch(err => {
-              console.log('ServiceWorker registration failed: ', err);
-            });
+          navigator.serviceWorker
+            .register('/service-worker.js')
+            .then(reg => console.log('SW registered:', reg.scope))
+            .catch(err => console.error('SW registration failed:', err));
         });
       }
     </script>
