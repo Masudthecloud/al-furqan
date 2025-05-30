@@ -6,24 +6,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Al-Furqan | The Noble Quran</title>
 
-    <!-- Open Graph / Social Media Meta Tags -->
-    <meta property="og:title" content="Al-Furqan | The Noble Quran" />
-    <meta property="og:description" content="Your spiritual companion for Quran, Prayer, and Reflection." />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://your-domain.com" /> <!-- Remember to replace with your actual domain -->
-    <meta property="og:image" content="/al-furqan-final-preview.png" />
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1a365d" />
+    <meta name="description" content="Your spiritual companion for Quran, Prayer, and Reflection." />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Al-Furqan" />
 
-    <!-- Twitter Card Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Al-Furqan | The Noble Quran" />
-    <meta name="twitter:description" content="Your spiritual companion for Quran, Prayer, and Reflection." />
-    <meta name="twitter:image" content="/al-furqan-final-preview.png" />
-
-    <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Amiri&family=Scheherazade&display=swap" rel="stylesheet" />
+    <!-- ... rest of your meta tags ... -->
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+              console.log('ServiceWorker registration successful');
+            })
+            .catch(err => {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
