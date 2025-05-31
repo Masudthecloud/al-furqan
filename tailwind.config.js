@@ -1,6 +1,10 @@
+// tailwind.config.js
 module.exports = {
   darkMode: 'class',
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  content: [
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx}',
+  ],
   theme: {
     extend: {
       colors: {
@@ -11,9 +15,14 @@ module.exports = {
         },
       },
       fontFamily: {
+        // Your existing Arabic UI font (fallbacks):
         arabic: ['"Amiri"', '"Scheherazade"', 'serif'],
+
+        // NEW: Noto Naskh Arabic for Mushaf (Qur’an text):
+        // "Noto Naskh Arabic" must match exactly the Google‐Fonts name
+        noto: ['"Noto Naskh Arabic"', 'serif'],
       },
     },
   },
   plugins: [],
-}
+};

@@ -1,77 +1,8 @@
-/* const API_BASE = "https://api.alquran.cloud/v1";
-
-interface Surah {
-  number: number;
-  name: string;
-  englishName: string;
-  englishNameTranslation: string;
-  revelationType: "Meccan" | "Medinan";
-}
-
-interface Ayah {
-  number: number;
-  text: string;
-  audio?: string;
-}
-
-export async function fetchSurahList(): Promise<Surah[]> {
-  try {
-    const res = await fetch(`${API_BASE}/surah`);
-    if (!res.ok) throw new Error("Failed to fetch Surah list");
-    const { data } = await res.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching surah list:", error);
-    throw error;
-  }
-}
-
-export async function fetchSurahByIdWithTranslation(
-  id: string, 
-  translation: string = "en.sahih"
-): Promise<{ 
-  name: string;
-  englishName: string;
-  englishNameTranslation: string;
-  number: number;
-  ayahs: Ayah[];
-}> {
-  try {
-    const res = await fetch(`${API_BASE}/surah/${id}/${translation}`);
-    if (!res.ok) throw new Error("Failed to fetch Surah translation");
-    const { data } = await res.json();
-    return data;
-  } catch (error) {
-    console.error(`Error fetching surah ${id}:`, error);
-    throw error;
-  }
-}
-
-export async function fetchSurahAudio(
-  surahNumber: string, 
-  reciter: string = "ar.alafasy"
-): Promise<Ayah[]> {
-  try {
-    const res = await fetch(`${API_BASE}/surah/${surahNumber}/${reciter}`);
-    if (!res.ok) throw new Error("Failed to fetch recitation");
-    const { data } = await res.json();
-    return data.ayahs;
-  } catch (error) {
-    console.error(`Error fetching audio for surah ${surahNumber}:`, error);
-    throw error;
-  }
-} */
-
 // src/services/quranService.tsx
-
+// ────────────────────────────────────────────────────────────────────────────
 const API_BASE = "https://api.alquran.cloud/v1";
 
-// Only Sheikh Abdur-Rahman as-Sudâis needs manual URL building.
-// All other reciters use the API’s built-in audio endpoint.
-const reciterBaseUrls: Record<string,string> = {
-  "ar.sudais": "https://verses.quran.com/Sudais/mp3",
-};
-
+// ───────────── 1) fetchSurahList (unchanged) ─────────────
 export interface Surah {
   number: number;
   name: string;
@@ -80,30 +11,18 @@ export interface Surah {
   revelationType: "Meccan" | "Medinan";
 }
 
-export interface Ayah {
-  number: number;     // verse index within the surah
-  text: string;       // Arabic text of the verse
-  audio?: string;     // URL to MP3 (if available)
-}
-
-// Shape returned by /surah/{id}/{reciter} for “normal” reciters
-interface ApiAyah {
-  numberInSurah: number;
-  text:         string;
-  audio:        string;
-}
-
-// Shape returned by /surah/{id}/ar for the Sudâis fallback
-interface ArabicApiAyah {
-  numberInSurah: number;
-  text:          string;
-}
-
 export async function fetchSurahList(): Promise<Surah[]> {
   const res = await fetch(`${API_BASE}/surah`);
   if (!res.ok) throw new Error("Failed to fetch Surah list");
   const { data } = await res.json();
   return data as Surah[];
+}
+
+// ───────────── 2) fetchSurahByIdWithTranslation (unchanged) ─────────────
+export interface Ayah {
+  number: number;   // verse index within the surah
+  text: string;     // Arabic or translated text
+  audio?: string;   // URL to MP3, if available
 }
 
 export async function fetchSurahByIdWithTranslation(
@@ -121,6 +40,22 @@ export async function fetchSurahByIdWithTranslation(
   const { data } = await res.json();
   return data;
 }
+
+// ───────────── 3) fetchSurahAudio (unchanged; includes Sudâis fallback) ─────────────
+// We only need a manual URL for Sheikh as-Sudâis; all other reciters use the API's endpoint.
+interface ApiAyah {
+  numberInSurah: number;
+  text: string;
+  audio: string;
+}
+interface ArabicApiAyah {
+  numberInSurah: number;
+  text: string;
+}
+
+const reciterBaseUrls: Record<string,string> = {
+  "ar.sudais": "https://verses.quran.com/Sudais/mp3",
+};
 
 export async function fetchSurahAudio(
   surahNumber: string,
@@ -142,13 +77,13 @@ export async function fetchSurahAudio(
 
       return {
         number: idx,
-        text:   raw.text,
-        audio:  `${reciterBaseUrls["ar.sudais"]}/${fileName}`,
+        text: raw.text,
+        audio: `${reciterBaseUrls["ar.sudais"]}/${fileName}`,
       };
     });
   }
 
-  // 2) Everyone else — use the API’s audio endpoint
+  // 2) All others → use the built-in /surah/{surahNumber}/{reciter} endpoint
   const res = await fetch(`${API_BASE}/surah/${surahNumber}/${reciter}`);
   if (!res.ok) throw new Error("Failed to fetch recitation");
   const { data } = await res.json();
@@ -156,7 +91,56 @@ export async function fetchSurahAudio(
 
   return apiAyahs.map(a => ({
     number: a.numberInSurah,
-    text:   a.text,
-    audio:  a.audio,
+    text: a.text,
+    audio: a.audio,
+  }));
+}
+
+// ───────────── 4) fetchPage (NEW!) ─────────────
+// GET /page/{pageNumber}/{edition}
+// Returns all Ayahs on that Mushaf page. We'll default edition="quran-uthmani".
+interface ApiPageAyah {
+  number: number;
+  text: string;
+  numberInSurah: number;
+  surah: {
+    number: number;
+    name: string;
+    englishName: string;
+  };
+}
+
+export interface PageResponse {
+  verses: PageAyah[];
+  meta: {
+    current_page: number;
+    total_pages: number;
+  };
+}
+
+export interface PageAyah {
+  number: number;
+  text: string;
+  numberInSurah: number;
+  surah: {
+    number: number;
+    name: string;
+    englishName: string;
+  };
+}
+
+export async function fetchPage(
+  pageNumber: number,
+  edition: string = "quran-uthmani"
+): Promise<PageAyah[]> {
+  const res = await fetch(`${API_BASE}/page/${pageNumber}/${edition}`);
+  if (!res.ok) throw new Error(`Failed to fetch page ${pageNumber}`);
+  const { data } = await res.json();
+  // data.ayahs is an array; we can cast it to PageAyah
+  return (data.ayahs as ApiPageAyah[]).map(a => ({
+    number: a.number,
+    text: a.text,
+    numberInSurah: a.numberInSurah,
+    surah: a.surah,
   }));
 }
