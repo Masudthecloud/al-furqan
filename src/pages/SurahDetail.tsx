@@ -20,6 +20,7 @@ import {
 } from "react-icons/fa";
 import PageView from "../components/PageView";
 
+// Define a local Ayah interface that includes the 'page' property
 interface Ayah {
   number: number;
   text: string;
@@ -28,6 +29,7 @@ interface Ayah {
   page: number;
 }
 
+// Define the Surah interface based on the expected data structure
 interface Surah {
   name: string;
   englishName: string;
@@ -289,7 +291,7 @@ export default function SurahDetail() {
           fetchSurahByIdWithTranslation(currentSurahNumber.toString(), "ar"),
           fetchSurahAudio(currentSurahNumber.toString(), reciter),
         ]);
-        const merged = arabic.ayahs.map((ayah, i) => ({
+        const merged = (arabic.ayahs as Ayah[]).map((ayah: Ayah, i: number) => ({
           number: i + 1,
           text: ayah.text,
           englishText: trans.ayahs[i]?.text,
@@ -651,7 +653,7 @@ export default function SurahDetail() {
   };
 
   // ────────────────────────────────────────────────────────────────────────────────
-  // Copy an Ayah’s text (with translation if in “translation” view)
+  // Copy an Ayah's text (with translation if in "translation" view)
   // ────────────────────────────────────────────────────────────────────────────────
   const copyAyah = async (ayah: Ayah) => {
     const text =
@@ -668,7 +670,7 @@ export default function SurahDetail() {
   };
 
   // ────────────────────────────────────────────────────────────────────────────────
-  // Share an Ayah’s text (Web Share API if available; fallback to clipboard)
+  // Share an Ayah's text (Web Share API if available; fallback to clipboard)
   // ────────────────────────────────────────────────────────────────────────────────
   const shareAyah = async (ayah: Ayah) => {
     const shareText =
@@ -693,7 +695,7 @@ export default function SurahDetail() {
   };
 
   // ────────────────────────────────────────────────────────────────────────────────
-  // RENDER: handle loading / error / “no surah” cases
+  // RENDER: handle loading / error / "no surah" cases
   // ────────────────────────────────────────────────────────────────────────────────
   if (loading)
     return (
@@ -732,7 +734,7 @@ export default function SurahDetail() {
       </div>
     );
 
-  // Compute Mushaf page if needed (for “Reading” view)
+  // Compute Mushaf page if needed (for "Reading" view)
   const startingMushafPage =
     currentSurahNumber && SURAH_TO_PAGE[currentSurahNumber]
       ? SURAH_TO_PAGE[currentSurahNumber]
@@ -926,7 +928,7 @@ export default function SurahDetail() {
           /* ─── TRANSLATION VIEW ───────────────────────────────────────────────────── */
           <div className="space-y-6">
             {surah.ayahs.map((ayah, index) => {
-              // Remove “Bismillah” prefix on first Ayah if Surah ≠ 1 or 9
+              // Remove "Bismillah" prefix on first Ayah if Surah ≠ 1 or 9
               const showArabic =
                 index === 0 && ![1, 9].includes(surah.number)
                   ? ayah.text.replace(
