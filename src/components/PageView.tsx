@@ -42,14 +42,12 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
     fetchPage(page, "quran-uthmani")
       .then((data) => {
         if (!cancelled) {
-          // console.log("Data received in PageView:", data); // Keep or remove this log as needed
           setAyahs(data);
           setLoading(false);
         }
       })
       .catch((err) => {
         if (!cancelled) {
-          // console.error("Error fetching page in PageView:", err); // Keep or remove this log as needed
           setError(err.message);
           setLoading(false);
         }
@@ -99,12 +97,11 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
       firstAyah &&
       firstAyah.numberInSurah > 1 // The first ayah returned is NOT Ayah 1
     ) {
-      console.log(`Fetching explicit Verse 1 for Surah ${surahNumber}`); // Log explicit fetch
       fetch(`https://api.alquran.cloud/v1/ayah/${surahNumber}:1/ar`)
         .then((res) => res.json())
         .then((json) => {
-          // Use the defined type instead of 'any'
-          setExplicitVerseOne((json.data as SingleAyahData).text.trim());
+          const fetched = (json.data as SingleAyahData).text.trim();
+          setExplicitVerseOne(fetched);
         })
         .catch(() => {
           setExplicitVerseOne(null);
@@ -123,7 +120,6 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
 
   const stripBismillahPrefix = (text: string) => {
     const stripped = text.replace(BASMALAH_REGEX, "").trim();
-    console.log(`Stripping Bismillah: Input="${text}", Output="${stripped}"`); // Log stripping
     return stripped;
   };
 
@@ -151,8 +147,6 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
     finalVerseOneText = null;
   }
 
-  console.log("finalVerseOneText:", finalVerseOneText); // Log finalVerseOneText
-
   // ─── 8) Build the array of verses (“displayAyahs”) we actually show below Basmalah/Verse 1 ─
   let displayAyahs: PageAyah[];
   // If this page starts a Surah (and it's not Surah 1), the first ayah returned by the API
@@ -160,23 +154,20 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
   // so displayAyahs should start from the second ayah returned by the API.
   // We only slice if the first ayah returned is indeed Ayah 1 of the Surah > 1
   if (showBismillah && surahNumber !== 1 && firstAyah && firstAyah.numberInSurah === 1) {
-      // For Surahs > 1 starting on this page, the first ayah returned contains Bismillah + Verse 1.
-      // We will render the standalone Bismillah centered above.
-      // We need to create a synthetic Ayah 1 object with the stripped text (remainder)
-      // and then include the rest of the ayahs from the API response.
-      const syntheticVerseOne: PageAyah = {
-          ...firstAyah, // Keep original surah info etc.
-          text: finalVerseOneText || '', // Use the stripped text
-          numberInSurah: 1,
-          isSyntheticVerseOne: true, // Add a flag to identify this synthetic ayah
-      };
-      displayAyahs = [syntheticVerseOne, ...ayahs.slice(1)];
+    // For Surahs > 1 starting on this page, the first ayah returned contains Bismillah + Verse 1.
+    // We create a synthetic Ayah 1 object with the stripped text (remainder),
+    // and then include the rest of the ayahs from the API response.
+    const syntheticVerseOne: PageAyah = {
+      ...firstAyah,               // keep surah metadata, page number, etc.
+      text: finalVerseOneText || "", // use the stripped remainder
+      numberInSurah: 1,           // explicitly mark as verse 1
+      // Note: we removed `isSyntheticVerseOne` because PageAyah type does not expect it.
+    };
+    displayAyahs = [syntheticVerseOne, ...ayahs.slice(1)];
   } else {
-      // Otherwise, display all ayahs returned by the API. This includes Surah 1 Ayah 1.
-      displayAyahs = ayahs;
+    // Otherwise, display all ayahs returned by the API. This includes Surah 1 Ayah 1.
+    displayAyahs = ayahs;
   }
-
-  console.log("displayAyahs count:", displayAyahs.length); // Log displayAyahs count
 
   // ─── 9) Navigation Handlers ──────────────────────────────────────────────────────
   const handlePreviousPage = () => {
@@ -198,7 +189,6 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
         <button
           onClick={handlePreviousPage}
           disabled={page <= 1}
-          // Replaced blue background/hover classes with emerald
           className={`px-4 py-2 rounded-md text-sm font-medium ${
             page <= 1
               ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
@@ -213,7 +203,6 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
         <button
           onClick={handleNextPage}
           disabled={page >= MAX_PAGE}
-          // Replaced blue background/hover classes with emerald
           className={`px-4 py-2 rounded-md text-sm font-medium ${
             page >= MAX_PAGE
               ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
@@ -246,7 +235,6 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
           {showBismillah && surahName && (
             <div className="flex flex-col items-center gap-2">
               {/* 1) Surah Name (calligraphic) */}
-              {/* Adjusted size and leading for a more prominent Surah name */}
               <h2 className="font-noto text-6xl text-gray-900 dark:text-gray-100 leading-normal">
                 {surahName}
               </h2>
@@ -255,8 +243,6 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
               <div className="w-20 h-px bg-gray-500 dark:bg-gray-600 my-2" />
 
               {/* 3) Basmalah */}
-              {/* Render standalone Bismillah centered only for Surahs > 1 */}
-              {/* Adjusted size and leading for Basmalah */}
               {showBismillah && surahNumber! > 1 && (
                 <p className="font-noto text-4xl text-center text-gray-700 dark:text-gray-300 leading-loose tracking-tight">
                   بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
@@ -267,24 +253,15 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
 
           {/* ─── Part B: Render the remaining verses on this page ───────────────────────── */}
           <div dir="rtl" lang="ar" className="flex flex-col gap-6">
-            {/*
-              This loop now renders all verses that should appear below the Surah name/Bismillah section.
-              For Surah 1, it includes Ayah 1 (Bismillah).
-              For Surahs > 1 starting on this page, it includes a synthetic Ayah 1 (remainder after Bismillah)
-              followed by the rest of the ayahs from the API response.
-              For pages not starting a Surah, it includes all ayahs from the API response.
-            */}
             {displayAyahs.map((ayah) => (
               <div
                 key={`${ayah.surah.number}-${ayah.numberInSurah}`}
                 className="relative flex justify-center items-center"
               >
                 <p className="font-noto text-3xl leading-loose text-gray-900 dark:text-gray-100 text-right w-full">
-                  {/* Render the text for the current ayah */}
                   {ayah.text.trim()}
                 </p>
                 {/* Verse‐number ornament (circle) */}
-                {/* Render the ornament for all ayahs in displayAyahs */}
                 <div className="absolute left-0 transform -translate-x-5 -translate-y-3">
                   <div className="w-10 h-10 rounded-full border-2 border-gray-400 dark:border-gray-600 bg-transparent flex items-center justify-center">
                     <span className="text-lg font-medium text-gray-500 dark:text-gray-400">
@@ -303,7 +280,6 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
         <button
           onClick={handlePreviousPage}
           disabled={page <= 1}
-          // Replaced blue background/hover classes with emerald
           className={`px-4 py-2 rounded-md text-sm font-medium ${
             page <= 1
               ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
@@ -318,7 +294,6 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
         <button
           onClick={handleNextPage}
           disabled={page >= MAX_PAGE}
-          // Replaced blue background/hover classes with emerald
           className={`px-4 py-2 rounded-md text-sm font-medium ${
             page >= MAX_PAGE
               ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
