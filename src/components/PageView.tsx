@@ -235,7 +235,7 @@ export default function PageView({ initialPage = 1 }: PageViewProps) {
           {showBismillah && surahName && (
             <div className="flex flex-col items-center gap-2">
               {/* 1) Surah Name (calligraphic) */}
-              <h2 className="font-noto text-6xl text-gray-900 dark:text-gray-100 leading-normal">
+              <h2 className="font-noto text-4xl text-gray-900 dark:text-gray-100 leading-normal">
                 {surahName}
               </h2>
 
