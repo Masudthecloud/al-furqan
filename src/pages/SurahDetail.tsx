@@ -941,7 +941,7 @@ export default function SurahDetail() {
                 <div
                   key={ayah.number}
                   id={`ayah-${ayah.number}`}
-                  className={`relative grid grid-cols-[auto,1fr,auto,auto] gap-4 p-5 rounded-lg transition-all duration-200 group ${
+                  className={`relative grid grid-cols-[auto,1fr,auto] gap-4 p-5 rounded-lg transition-all duration-200 group ${
                     playingIndex === index
                       ? "bg-emerald-100 dark:bg-emerald-900"
                       : "border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -951,7 +951,7 @@ export default function SurahDetail() {
                       : ""
                   }`}
                 >
-                  {/* Column 1: verse label + play/copy/share */}
+                  {/* Column 1: verse label + play/stop + bookmark */}
                   <div className="flex flex-col items-center space-y-2">
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                       {surah.number}.{ayah.number}
@@ -976,26 +976,23 @@ export default function SurahDetail() {
                       )}
                     </button>
 
-                    {/* Copy */}
+                    {/* Bookmark */}
                     <button
-                      onClick={() => copyAyah(ayah)}
+                      onClick={() =>
+                        handleBookmarkToggle(surah.number, ayah.number)
+                      }
                       className="w-7 h-7 flex items-center justify-center rounded-full text-gray-500 hover:text-emerald-500 dark:text-gray-400 dark:hover:text-emerald-400"
-                      title="Copy verse"
+                      title={
+                        isAyahBookmarked(surah.number, ayah.number)
+                          ? "Remove Bookmark"
+                          : "Add Bookmark"
+                      }
                     >
-                      {copiedAyah === ayah.number ? (
-                        <FaCheck className="text-emerald-500" />
+                      {isAyahBookmarked(surah.number, ayah.number) ? (
+                        <FaStar className="text-emerald-500" />
                       ) : (
-                        <FaCopy size={12} />
+                        <FaRegStar size={12} />
                       )}
-                    </button>
-
-                    {/* Share */}
-                    <button
-                      onClick={() => shareAyah(ayah)}
-                      className="w-7 h-7 flex items-center justify-center rounded-full text-gray-500 hover:text-emerald-500 dark:text-gray-400 dark:hover:text-emerald-400"
-                      title="Share verse"
-                    >
-                      <FaShare size={12} />
                     </button>
                   </div>
 
@@ -1009,28 +1006,7 @@ export default function SurahDetail() {
                     </p>
                   </div>
 
-                  {/* Column 3: Bookmark star */}
-                  <div className="flex items-start justify-end">
-                    <button
-                      onClick={() =>
-                        handleBookmarkToggle(surah.number, ayah.number)
-                      }
-                      className="p-2 text-gray-500 hover:text-emerald-500 dark:text-gray-400 dark:hover:text-emerald-400"
-                      title={
-                        isAyahBookmarked(surah.number, ayah.number)
-                          ? "Remove Bookmark"
-                          : "Add Bookmark"
-                      }
-                    >
-                      {isAyahBookmarked(surah.number, ayah.number) ? (
-                        <FaStar className="text-emerald-500" />
-                      ) : (
-                        <FaRegStar />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Column 4: More (⋯) button */}
+                  {/* Column 3: More (⋯) button */}
                   <div className="flex items-start justify-end">
                     <button
                       onClick={() => openVerseSettings(ayah.number)}
@@ -1085,6 +1061,31 @@ export default function SurahDetail() {
                               </button>
                             ))}
                           </div>
+                        </div>
+
+                        {/* NEW: Copy and Share buttons inside settings */}
+                        <div className="mb-4">
+                           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Actions</p>
+                           <div className="flex flex-col gap-2">
+                             <button
+                               onClick={() => { copyAyah(ayah); closeVerseSettings(); }}
+                               className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                             >
+                               {copiedAyah === ayah.number ? (
+                                 <FaCheck className="text-emerald-500" size={12} />
+                               ) : (
+                                 <FaCopy size={12} />
+                               )}
+                               {copiedAyah === ayah.number ? "Copied!" : "Copy Verse"}
+                             </button>
+                             <button
+                               onClick={() => { shareAyah(ayah); closeVerseSettings(); }}
+                               className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                             >
+                               <FaShare size={12} />
+                               Share Verse
+                             </button>
+                           </div>
                         </div>
 
                         {/* CANCEL / OK buttons */}
