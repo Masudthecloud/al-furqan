@@ -183,17 +183,17 @@ export default function SurahDetail() {
   const [repeatCountMap, setRepeatCountMap] = useState<Record<number, number>>(
     {}
   );
-  const [startAyah, setStartAyah] = useState(1);
+  const [startAyah] = useState(1);
   const [endAyah, setEndAyah] = useState<number | null>(null);
-  const [repeatEach, setRepeatEach] = useState(false);
-  const [repeatCount, setRepeatCount] = useState(1);
+  const [repeatEach] = useState(false);
+  const [repeatCount] = useState(1);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [isPlayingAll, setIsPlayingAll] = useState(false);
-  const [currentPlayingAyah, setCurrentPlayingAyah] = useState<number | null>(
+  const [, setCurrentPlayingAyah] = useState<number | null>(
     null
   );
-  const [volume, setVolume] = useState(0.7);
-  const [isMuted, setIsMuted] = useState(false);
+  const [volume] = useState(0.7);
+  const [isMuted] = useState(false);
   const [isSurahDropdownOpen, setIsSurahDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentSurahNumber, setCurrentSurahNumber] = useState<number | null>(

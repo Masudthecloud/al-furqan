@@ -20,7 +20,6 @@
     "noUncheckedSideEffectImports": true
   },
   "include": [
-    "src",           // ← ensure TS knows about your source files
     "vite.config.ts" // ← keep this if you're using a Vite config file
   ]
 }
