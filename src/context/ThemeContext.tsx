@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState } from "react";
+// src/context/ThemeContext.tsx
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 interface ThemeContextType {
   darkMode: boolean;
@@ -13,7 +14,7 @@ const ThemeContext = createContext<ThemeContextType>({
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [darkMode, setDarkMode] = useState(() => {
     // Check for saved preference or system preference
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const saved = localStorage.getItem("theme");
       if (saved) return saved === "dark";
       return window.matchMedia("(prefers-color-scheme: dark)").matches;
